@@ -1,8 +1,8 @@
-﻿'###############################################################################
-'#  RichTextBox.bi                                                                #
-'#  This file is part of MyFBFramework                        				   #
-'#  Version 1.0.0                                                              #
-'###############################################################################
+﻿'################################################################################
+'#  RichTextBox.bi                                                              #
+'#  This file is part of MyFBFramework                                          #
+'#  Authors: Xusinboy Bekchanov (2018-2019)                                     #
+'################################################################################
 
 #Include Once "TextBox.bi"
 
@@ -235,7 +235,6 @@ namespace My.Sys.Forms
 
 		Sub RichTextBox.ProcessMessage(BYREF message As Message)
 			'?message.msg & ": " & GetMessageName(message.msg)
-			Base.ProcessMessage(message)
 			Select Case message.Msg
 			Case CM_COMMAND
 				Select Case Message.wParamHi
@@ -258,6 +257,7 @@ namespace My.Sys.Forms
 					message.lParam = Cast(LPARAM, @reps)
 				End Select
 			End Select
+			Base.ProcessMessage(Message)
 		End Sub
 	#EndIf
 

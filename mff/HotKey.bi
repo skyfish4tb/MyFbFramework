@@ -1,8 +1,8 @@
-﻿'################################################################################
+﻿'###############################################################################
 '#  HotKey.bi                                                                  #
-'#  This file is part of MyFBFramework                                            #
-'#  Version 1.0.0                                                                  #
-'################################################################################
+'#  This file is part of MyFBFramework                                         #
+'#  Authors: Xusinboy Bekchanov (2018-2019)                                    #
+'###############################################################################
 
 #Include Once "Control.bi"
 
@@ -35,6 +35,7 @@ Namespace My.Sys.Forms
 		End Sub
 
 		Sub HotKey.ProcessMessage(ByRef Message As Message)
+			Base.ProcessMessage(Message)
 		End Sub
 	#EndIf
 

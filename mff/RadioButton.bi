@@ -1,7 +1,14 @@
 ﻿'###############################################################################
 '#  RadioButton.bi                                                             #
-'#  This file is part of MyFBFramework		                                   #
-'#  Version 1.0.0                                                              #
+'#  This file is part of MyFBFramework                                         #
+'#  Authors: Nastase Eodor, Xusinboy Bekchanov                                 #
+'#  Based on:                                                                  #
+'#   TRadioButton.bi                                                           #
+'#   FreeBasic Windows GUI ToolKit                                             #
+'#   Copyright (c) 2007-2008 Nastase Eodor                                     #
+'#   Version 1.0.0                                                             #
+'#  Updated and added cross-platform                                           #
+'#  by Xusinboy Bekchanov (2018-2019)                                          #
 '###############################################################################
 
 #Include Once "Control.bi"
@@ -103,7 +110,6 @@ Namespace My.Sys.Forms
 		End Sub
 
 		Sub RadioButton.ProcessMessage(BYREF Message As Message)
-			Base.ProcessMessage(Message)
 			Select Case Message.Msg
 			Case CM_CTLCOLOR
 				Static As HDC Dc
@@ -117,6 +123,7 @@ Namespace My.Sys.Forms
 					If OnClick Then OnClick(This)
 				End If
 			End Select
+			Base.ProcessMessage(Message)
 		End Sub
 	#EndIf
 

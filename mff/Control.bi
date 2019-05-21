@@ -1,7 +1,14 @@
 ﻿'###############################################################################
 '#  Control.bi                                                                 #
 '#  This file is part of MyFBFramework                                         #
-'#  Version 1.0.0                                                              #
+'#  Authors: Nastase Eodor, Xusinboy Bekchanov                                 #
+'#  Based on:                                                                  #
+'#   TControl.bi                                                               #
+'#   FreeBasic Windows GUI ToolKit                                             #
+'#   Copyright (c) 2007-2008 Nastase Eodor                                     #
+'#   Version 1.0.1                                                             #
+'#  Updated and added cross-platform                                           #
+'#  by Xusinboy Bekchanov (2018-2019)                                          #
 '###############################################################################
 
 #Include Once "Menus.bi"
@@ -104,7 +111,13 @@ Namespace My.Sys.Forms
 				#Else
 					FParentHandle As HWND
                 #EndIf
-                #IfNDef __USE_GTK__
+                #IfDef __USE_GTK__
+                	AllocatedHeight As Integer
+					AllocatedWidth As Integer
+					Declare Static Sub Control_SizeAllocate(widget As GtkWidget Ptr, allocation As GdkRectangle Ptr, user_data As Any Ptr)
+					Declare Static Function Control_Draw(widget As GtkWidget Ptr, cr As cairo_t Ptr, data1 As Any Ptr) As Boolean
+					Declare Static Function Control_ExposeEvent(widget As GtkWidget Ptr, event As GdkEventExpose Ptr, data1 As Any Ptr) As Boolean
+                #Else
 					FToolInfo          As TOOLINFO
 	            #EndIf
                 FBorderStyle       As Integer
@@ -165,8 +178,6 @@ Namespace My.Sys.Forms
                 Declare Virtual Function ReadProperty(ByRef PropertyName As String) As Any Ptr
                 Declare Virtual Function WriteProperty(ByRef PropertyName As String, Value As Any Ptr) As Boolean
                 #IfDef __USE_GTK__
-					AllocatedHeight As Integer
-					AllocatedWidth As Integer
 					Declare Function RegisterClass(ByRef wClassName As WString, Obj As Any Ptr, WndProcAddr As Any Ptr = 0) As Boolean
 					Declare Static Function EventProc(widget As GtkWidget Ptr, event As GdkEvent Ptr, user_data As Any Ptr) As Boolean
 					Declare Static Function EventAfterProc(widget As GtkWidget Ptr, event As GdkEvent Ptr, user_data As Any Ptr) As Boolean
@@ -179,8 +190,11 @@ Namespace My.Sys.Forms
 					ToolTipHandle       As HWND
                 #EndIf
                 SubClass            As Boolean
+                'Returns a Font object.
                 Font               As My.Sys.Drawing.Font
+                'Returns/sets the type of mouse pointer displayed when over part of an object.
                 Cursor             As My.Sys.Drawing.Cursor Ptr
+                'Specifies the default Help file context ID for an object.
                 HelpContext        As Integer
                 Constraints        As SizeConstraints
                 DoubleBuffered     As Boolean
@@ -189,41 +203,50 @@ Namespace My.Sys.Forms
                 Margins            As MarginsType
                 Declare Property ID As Integer
                 Declare Property ID(Value As Integer)
+                'Returns/sets the border style for an object.
                 Declare Property BorderStyle As Integer 'BorderStyles
                 Declare Property BorderStyle(Value As Integer)
                 Declare Property ContextMenu As PopupMenu Ptr
                 Declare Property ContextMenu(Value As PopupMenu Ptr)
-                'en:Text displayed to users
-                'ru:Текст показываемая пользователям
-                'uz:Foydalanuvchilarga koʻrsatiladigan matn
+                'Returns/sets the text contained in the control
                 Declare Property Text ByRef As WString
                 Declare Property Text(ByRef Value As WString)
+                'Returns/sets the text displayed when the mouse is paused over the control.
                 Declare Property Hint ByRef As WString
                 Declare Property Hint(ByRef Value As WString)
                 Declare Property ShowHint As Boolean
                 Declare Property ShowHint(Value As Boolean)
+                'Returns/sets the background color used to display text and graphics in an object.
                 Declare Property BackColor As Integer
                 Declare Property BackColor(Value As Integer)
+                '
                 Declare Property Parent As Control Ptr
                 Declare Property Parent(Value As Control Ptr)
+                '
                 Declare Property Align As Integer 'DockStyle
                 Declare Property Align(Value As Integer) 'DockStyle
+                'Returns/sets the distance between the internal left edge of an object and the left edge of its container.
                 Declare Property Left As Integer
                 Declare Property Left(Value As Integer)
+                'Returns/sets the distance between the internal top edge of an object and the top edge of its container.
                 Declare Property Top As Integer
                 Declare Property Top(Value As Integer)
+                'Returns/sets the width of an object.
                 Declare Property Width As Integer
                 Declare Property Width(Value As Integer)
+                'Returns/sets the height of an object.
                 Declare Property Height As Integer
                 Declare Property Height(Value As Integer)
                 Declare Function ClientWidth As Integer
                 Declare Function ClientHeight As Integer
+                'Returns/sets a value indicating whether a user can use the TAB key to give the focus to an object.
                 Declare Property TabStop As Boolean
                 Declare Property TabStop(Value As Boolean)
                 Declare Property Grouped As Boolean
                 Declare Property Grouped(Value As Boolean)
                 Declare Property IsChild As Boolean
                 Declare Property IsChild(Value As Boolean)
+                'Returns/sets a value that determines whether an object can respond to user-generated events.
                 Declare Property Enabled As Boolean
                 Declare Property Enabled(Value As Boolean)
                 #IfDef __USE_GTK__
@@ -233,6 +256,7 @@ Namespace My.Sys.Forms
 					Declare Property ParentHandle As HWND
 					Declare Property ParentHandle(Value As HWND)
                 #EndIf
+                'Returns/sets a value that determines whether an object is visible or hidden.
                 Declare Property Visible As Boolean
                 Declare Property Visible(Value As Boolean)
                 Declare Function ControlCount() As Integer
@@ -244,6 +268,8 @@ Namespace My.Sys.Forms
                 Declare Function TopLevelControl() As Control Ptr
                 Declare Function Focused As Boolean
                 Declare Function IndexOf(Ctrl As Control Ptr) As Integer
+                Declare Function IndexOf(CtrlName As String) As Integer
+                Declare Function ControlByName(CtrlName As String) As Control Ptr
                 Declare Sub CreateWnd
                 Declare Sub RecreateWnd
                 Declare Sub FreeWnd
@@ -322,7 +348,7 @@ Namespace My.Sys.Forms
             #IfDef __USE_GTK__
 				Case "widget": Return widget
 				Case "layoutwidget": Return layoutwidget
-				Case "parentwidget": Return @FParentWidget
+				Case "parentwidget": Return FParentWidget
 			#Else
 				Case "handle": Return @FHandle
 				Case "parenthandle": Return @FParentHandle
@@ -445,7 +471,7 @@ Namespace My.Sys.Forms
             Function Control.Focused As Boolean
 				#IfDef __USE_GTK__
 					Return widget AndAlso gtk_widget_is_focus(widget)
-				#Else	
+				#Else
 					Return GetFocus = FHandle
 				#EndIf
             End Function
@@ -466,7 +492,7 @@ Namespace My.Sys.Forms
         #EndIf
         
         #IfNDef GetForm_Off
-            Function Control.GetForm As Control Ptr '...'
+            Function Control.GetForm As Control Ptr
                 If This.ClassName = "Form" Then
                     Return @This
                 ElseIf FParent = 0 Then
@@ -568,14 +594,14 @@ Namespace My.Sys.Forms
         #IfNDef Text_Off
             Property Control.Text ByRef As WString
                 #IFNDef __USE_GTK__
-            					If FHandle Then
-            						Dim As Integer L
-            						L = Perform(WM_GETTEXTLENGTH, 0, 0)
+				If FHandle Then
+					Dim As Integer L
+					L = Perform(WM_GETTEXTLENGTH, 0, 0)
                     FText = Cast(WString Ptr, ReAllocate(FText, (L + 1 + 1) * SizeOf(WString)))
                     *FText = WString(L + 1, 0)
                     GetWindowText(FHandle, FText, L + 1)
-            					End If
-            				#EndIf
+				End If
+				#EndIf
                 Return WGet(FText)
             End Property
 
@@ -677,7 +703,7 @@ Namespace My.Sys.Forms
 					Exit Sub
 				End If 
 				If widget Then
-					If gtk_widget_is_toplevel(widget) Then
+					If gtk_is_widget(widget) AndAlso gtk_widget_is_toplevel(widget) Then
 						gtk_window_move(GTK_WINDOW(widget), iLeft, iTop)
 						gtk_window_resize(GTK_WINDOW(widget), Max(0, iWidth), Max(0, iHeight - 20))
 						'gtk_window_resize(GTK_WINDOW(widget), Max(1, iWidth), Max(1, iHeight))
@@ -709,7 +735,7 @@ Namespace My.Sys.Forms
 					End If
 				EndIf
             #Else
-				If FHandle Then MoveWindow FHandle, iLeft, iTop, iWidth, iHeight, True
+            	If FHandle Then MoveWindow FHandle, iLeft, iTop, iWidth, iHeight, True
 			#EndIf
         End Sub
         #EndIf
@@ -773,7 +799,7 @@ Namespace My.Sys.Forms
         #IfNDef Width_Off
             Property Control.Width As Integer
                 #IfDef __USE_GTK__
-					If layoutwidget AndAlso gtk_widget_is_toplevel(widget) Then
+					If layoutwidget AndAlso gtk_is_widget(widget) AndAlso gtk_widget_is_toplevel(widget) Then
 						#IfDef __USE_GTK3__
 							FWidth = gtk_widget_get_allocated_width(widget)
 						#Else
@@ -813,7 +839,7 @@ Namespace My.Sys.Forms
         #IfNDef Height_Off
             Property Control.Height As Integer
                 #IfDef __USE_GTK__
-					If layoutwidget AndAlso gtk_widget_is_toplevel(widget) Then
+					If layoutwidget AndAlso gtk_is_widget(widget) AndAlso gtk_widget_is_toplevel(widget) Then
 						#IfDef __USE_GTK3__
 							FHeight = gtk_widget_get_allocated_height(widget)
 						#Else
@@ -1133,9 +1159,9 @@ Namespace My.Sys.Forms
 						HParent = FParent->Handle
 					Else
 						HParent = NULL
-						If MainHandle Then
-							HParent = MainHandle
-						End If 
+'						If MainHandle Then
+'							HParent = MainHandle
+'						End If 
 						If FOwner Then
 							HParent = FOwner->Handle
 						End If
@@ -1167,7 +1193,11 @@ Namespace My.Sys.Forms
 					XMapWindow(dpy, win)
 				#Else
 					If (Style AND (WS_CLIPCHILDREN OR WS_CLIPSIBLINGS)) <> (WS_CLIPCHILDREN OR WS_CLIPSIBLINGS) Then
-						Style = Style OR (WS_CLIPCHILDREN OR WS_CLIPSIBLINGS)
+						'If DesignMode AndAlso ClassName = "GroupBox" Then
+						'	Style = Style OR (WS_CLIPSIBLINGS)
+						'Else
+							Style = Style OR (WS_CLIPCHILDREN OR WS_CLIPSIBLINGS)
+						'End If
 					End If
 					CreationCOntrol = @This
 					'RegisterClass ClassName, ClassAncestor
@@ -1209,6 +1239,7 @@ Namespace My.Sys.Forms
 						This.Controls[i]->RequestAlign
 						This.Controls[i]->CreateWnd
 					Next i
+					This.RequestAlign
 					If This.ContextMenu Then This.ContextMenu->ParentWindow = @This
 					If OnCreate Then OnCreate(This)            
 					If FVisible Then ShowWindow(FHandle, SW_SHOWNORMAL)
@@ -1243,7 +1274,7 @@ Namespace My.Sys.Forms
             		gtk_widget_destroy(ScrolledWidget)
             	End If
             #Else
-				If OnHandleIsDestroyed Then OnHandleIsDestroyed(This)
+            	If OnHandleIsDestroyed Then OnHandleIsDestroyed(This)
 				If FHandle Then
 '					For i As Integer = 0 To ControlCount - 1
 '						Controls[i]->FreeWnd
@@ -1285,6 +1316,7 @@ Namespace My.Sys.Forms
 					End If
 					If OnMouseUp Then OnMouseUp(This, e->button.button - 1, e->button.x, e->button.y, e->button.state)
 					If e->button.button = 3 AndAlso ContextMenu Then
+						Message.Result = True
 						If ContextMenu->widget Then
 							ContextMenu->Popup(e->button.x, e->button.y, @Message)
 						End If
@@ -1386,10 +1418,16 @@ Namespace My.Sys.Forms
 				bShift = GetKeyState(VK_SHIFT) And 8000
 				bCtrl = GetKeyState(VK_CONTROL) And 8000
 				Select Case Message.Msg
+				Case WM_NCHITTEST
+					If DesignMode Then
+						If ClassName <> "Form" AndAlso ClassName <> "GroupBox" Then
+							Message.Result = HTTRANSPARENT
+						End If
+					End If
 				Case WM_PAINT
 					If OnPaint Then OnPaint(This)
 				Case WM_SETCURSOR
-					If CInt(This.Cursor <> 0) AndAlso CInt(LoWord(message.lParam) = HTCLIENT) Then
+					If CInt(This.Cursor <> 0) AndAlso CInt(LoWord(message.lParam) = HTCLIENT) AndAlso CInt(Not DesignMode) Then
 						Message.Result = Cast(LResult, SetCursor(This.Cursor->Handle))
 					End If
 				Case WM_HSCROLL
@@ -1546,7 +1584,7 @@ Namespace My.Sys.Forms
 				Case WM_CHAR
 					If OnKeyPress Then OnKeyPress(This, Message.WParam)
 				Case WM_KEYDOWN
-					If OnKeyDown Then OnKeyDown(This,LoWord(Message.WParam),Message.lParam And &HFFFF)
+					If OnKeyDown Then OnKeyDown(This, Message.WParam, Message.lParam And &HFFFF)
 					If GetKeyState(VK_MENU) >= 0 Then
 						Select Case LoWord(message.wParam)
 						Case VK_TAB
@@ -1622,6 +1660,12 @@ Namespace My.Sys.Forms
 				Message.Result = True
 			#Else
 				Select Case Message.Msg
+				Case WM_NCHITTEST
+					If DesignMode Then
+						If ClassName <> "Form" Then
+							'Message.Result = HTTRANSPARENT
+						End If
+					End If
 				Case WM_DESTROY
 					SetWindowLongPtr(FHandle, GWLP_USERDATA, 0)
 					If OnDestroy Then OnDestroy(This)
@@ -1630,7 +1674,7 @@ Namespace My.Sys.Forms
 			#EndIf
 		End Sub
 		
-        Function Control.EnumPopupMenuItems(Item As MenuItem) As Boolean
+        Function Control.EnumPopupMenuItems(Item As MenuItem) As Boolean '...'
             FPopupMenuItems.Add Item
             For i As Integer = 0 To Item.Count -1
                 EnumPopupMenuItems *Item.Item(i)
@@ -1653,7 +1697,7 @@ Namespace My.Sys.Forms
 				Dim As Control Ptr Ctrl = user_data
 				Message = Type(Ctrl, widget, event, False)
 				If Ctrl Then
-					If Ctrl->DesignMode Then Return True
+					'If Ctrl->DesignMode Then Return True
 					Message.Sender = Ctrl
 					Ctrl->ProcessMessage(Message)
 				End If
@@ -1665,7 +1709,7 @@ Namespace My.Sys.Forms
 				Dim As Control Ptr Ctrl = user_data
 				Message = Type(Ctrl, widget, event, False)
 				If Ctrl Then
-					If Ctrl->DesignMode Then Return True
+					'If Ctrl->DesignMode Then Return True
 					Message.Sender = Ctrl
 					Ctrl->ProcessMessageAfter(Message)
 				End If
@@ -1679,7 +1723,7 @@ Namespace My.Sys.Forms
 				If Ctrl Then
 					Ctrl->ProcessMessage(Message)
 					If Message.Result = -1 Then
-						Exit Function
+						Return Message.Result
 					ElseIf Message.Result = -2 Then
 						Msg = Message.Msg
 						wParam = Message.wParam
@@ -1691,9 +1735,6 @@ Namespace My.Sys.Forms
 				Message.Result = DefWindowProc(FWindow,Msg,wParam,lParam)
 '				If Ctrl Then
 '					Ctrl->ProcessMessageAfter(Message)
-''				    If Ctrl->FDisposed Then
-''				        Delete Ctrl
-''				    End If
 '				End If
 				Return Message.Result
 			End Function
@@ -1708,7 +1749,7 @@ Namespace My.Sys.Forms
 					Proc = Ctrl->PrevProc
 					Ctrl->ProcessMessage(Message)
 					If Message.Result = -1 Then
-						Exit Function
+						Return Message.Result
 					ElseIf Message.Result = -2 Then
 						Msg = Message.Msg
 						wParam = Message.wParam
@@ -1717,10 +1758,9 @@ Namespace My.Sys.Forms
 						Return Message.Result
 					End If
 					Message.Result = CallWindowProc(Proc,FWindow,Msg,wParam,lParam)
-					'Ctrl->ProcessMessageAfter(Message)
-'					If Ctrl->FDisposed Then
-'				        Delete Ctrl
-'				    End If
+'					If Ctrl Then
+'						Ctrl->ProcessMessageAfter(Message)
+'					End If
 				End If
 				Return Message.Result
 			End Function
@@ -1729,11 +1769,9 @@ Namespace My.Sys.Forms
 '    			On Error Goto ErrorHandler
 				Dim As Control Ptr Ctrl
 				Dim Message As Message
-				Dim As String A1111
 				Ctrl = Cast(Any Ptr, GetWindowLongPtr(FWindow, GWLP_USERDATA))
 				Message = Type(Ctrl, FWindow, Msg, wParam, lParam, 0, LoWord(wParam), HiWord(wParam), LoWord(lParam), HiWord(lParam), Message.Captured)
 				If Ctrl Then
-					A1111 = Ctrl->ClassName
 					With *Ctrl
 						.ProcessMessage(Message)
 						If Message.Result = -1 Then
@@ -1748,6 +1786,9 @@ Namespace My.Sys.Forms
 					End With
 				End If
 				Message.Result = CallWindowProc(GetClassProc(FWindow), FWindow, Msg, wParam, lParam)
+'				If Ctrl Then
+'					Ctrl->ProcessMessageAfter(Message)
+'				End If
 				Return Message.Result
 '    Exit Function
 'ErrorHandler:
@@ -1767,7 +1808,7 @@ Namespace My.Sys.Forms
 			End Function
 		#EndIf
     
-        Function Control.SelectNext(CurControl As Control Ptr, Prev As Boolean = False) As Control Ptr '...'
+        Function Control.SelectNext(CurControl As Control Ptr, Prev As Boolean = False) As Control Ptr
             Static As Integer Index, LastIndex
             Var iStep = IIF(Prev, -1, 1)
             If CurControl AndAlso CurControl->Parent Then
@@ -1794,7 +1835,7 @@ Namespace My.Sys.Forms
         End Function
     
         #IfDef __USE_GTK__
-			Sub Control_SizeAllocate(widget As GtkWidget Ptr, allocation As GdkRectangle Ptr, user_data As Any Ptr)
+			Sub Control.Control_SizeAllocate(widget As GtkWidget Ptr, allocation As GdkRectangle Ptr, user_data As Any Ptr)
 				Dim As Control Ptr Ctrl = Cast(Any Ptr, user_data)
 				If gtk_is_layout(widget) Then
 					#IfDef __USE_GTK3__
@@ -1817,7 +1858,7 @@ Namespace My.Sys.Forms
 				End If
 			End Sub
 			
-			Function Control_Draw(widget As GtkWidget Ptr, cr As cairo_t Ptr, data1 As Any Ptr) As Boolean
+			Function Control.Control_Draw(widget As GtkWidget Ptr, cr As cairo_t Ptr, data1 As Any Ptr) As Boolean
 				Dim As Control Ptr Ctrl = Cast(Any Ptr, data1)
 				If gtk_is_layout(widget) Then
 					#IfDef __USE_GTK3__
@@ -1841,7 +1882,7 @@ Namespace My.Sys.Forms
 				Return False
 			End Function
 			
-			Function Control_ExposeEvent(widget As GtkWidget Ptr, event As GdkEventExpose Ptr, data1 As Any Ptr) As Boolean
+			Function Control.Control_ExposeEvent(widget As GtkWidget Ptr, event As GdkEventExpose Ptr, data1 As Any Ptr) As Boolean
 				Dim As cairo_t Ptr cr = gdk_cairo_create(event->window)
 				Control_Draw(widget, cr, data1)
 				cairo_destroy(cr)
@@ -1874,6 +1915,7 @@ Namespace My.Sys.Forms
 					#EndIf
 				End If
 				If widget Then
+					Font.Parent = @This
 					gtk_widget_set_events(widget, _
 	                      GDK_EXPOSURE_MASK Or _
 	                       GDK_SCROLL_MASK Or _
@@ -2121,7 +2163,7 @@ Namespace My.Sys.Forms
 				For i = 0 To ClientCount -1
 					With *ListClient[i]
 						If .FVisible Then 
-						.SetBounds(lLeft,tTop,rLeft - lLeft,bTop - tTop)
+							.SetBounds(lLeft,tTop,rLeft - lLeft,bTop - tTop)
 						End If
 					End With
 				Next i
@@ -2287,14 +2329,31 @@ Namespace My.Sys.Forms
             End If
         End Sub
     
-        Function Control.IndexOf(Ctrl As Control Ptr) As Integer '...'
+        Function Control.IndexOf(Ctrl As Control Ptr) As Integer
             Dim As Integer i
             For i = 0 To ControlCount -1
                 If Controls[i] = Ctrl Then Return i
             Next i
             Return -1
         End Function
-    
+        
+        Function Control.IndexOf(CtrlName As String) As Integer
+            Dim As Integer i
+            For i = 0 To ControlCount -1
+                If Controls[i]->Name = CtrlName Then Return i
+            Next i
+            Return -1
+        End Function
+        
+        Function Control.ControlByName(CtrlName As String) As Control Ptr
+        	Dim i As Integer = IndexOf(CtrlName)
+        	If i <> -1 Then
+        		Return Controls[i]
+        	Else
+        		Return 0
+        	End If
+        End Function
+     
         Operator Control.Cast As Any Ptr '...'
             Return @This
         End Operator
@@ -2333,12 +2392,17 @@ Namespace My.Sys.Forms
     #EndIf
 End namespace
 
+#IfDef __EXPORT_PROCS__
 Sub RemoveControl Alias "RemoveControl"(Parent As My.Sys.Forms.Control Ptr, Ctrl As My.Sys.Forms.Control Ptr) Export
 	Parent->Remove Ctrl
 End Sub
 
 Function ControlByIndex Alias "ControlByIndex"(Parent As My.Sys.Forms.Control Ptr, Index As Integer) As My.Sys.Forms.Control Ptr Export
 	Return Parent->Controls[Index]
+End Function
+
+Function ControlByName Alias "ControlByName"(Parent As My.Sys.Forms.Control Ptr, CtrlName As String) As My.Sys.Forms.Control Ptr Export
+	Return Parent->ControlByName(CtrlName)
 End Function
 
 Sub ControlGetBounds Alias "ControlGetBounds"(Ctrl As My.Sys.Forms.Control Ptr, ALeft As Integer Ptr, ATop As Integer Ptr, AWidth As Integer Ptr, AHeight As Integer Ptr) Export
@@ -2360,4 +2424,4 @@ End Sub
 Sub ControlFreeWnd Alias "ControlFreeWnd"(Ctrl As My.Sys.Forms.Control Ptr) Export
     Ctrl->FreeWnd()
 End Sub
-
+#EndIf

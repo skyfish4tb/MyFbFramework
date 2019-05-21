@@ -1,9 +1,12 @@
-﻿#Include Once "Object.bi"
+﻿'###############################################################################
+'#  Component.bi                                                               #
+'#  This file is part of MyFBFramework                                         #
+'#  Authors: Xusinboy Bekchanov (2018-2019)                                    #
+'###############################################################################
+
+#Include Once "Object.bi"
 #IfDef __USE_GTK__
-	'#IfnDef __USE_GTK2__
-	'	#DEFINE __USE_GTK3__
-	'#EndIf
-    #Include once "gtk/gtk.bi"
+	#Include once "gtk/gtk.bi"
     #IfDef __USE_GTK3__
     	#include once "glib-object.bi"
     #EndIf
@@ -23,6 +26,7 @@ Namespace My.Sys.ComponentModel
                 FHandle As HWND
             #EndIf
         Public:
+        	'Stores any extra data needed for your program.
             Tag As Any Ptr
             #IfDef __USE_GTK__
 				Accelerator     As GtkAccelGroup Ptr
@@ -43,6 +47,7 @@ Namespace My.Sys.ComponentModel
             Declare Function GetTopLevel As Component Ptr
             Declare Property DesignMode As Boolean
             Declare Property DesignMode(Value As Boolean)
+            'Returns the name used in code to identify an object.
             Declare Property Name ByRef As WString
             Declare Property Name(ByRef Value As WString)
             Declare Property Parent As Component Ptr 'ContainerControl
@@ -53,6 +58,7 @@ Namespace My.Sys.ComponentModel
     Function Component.ReadProperty(ByRef PropertyName As String) As Any Ptr
         Select Case LCase(PropertyName)
         Case "designmode": Return @FDesignMode
+        Case "classancestor": Return FClassAncestor
         Case "tag": Return Tag
         Case "name": Return FName
         Case Else: Return Base.ReadProperty(PropertyName)
@@ -65,6 +71,7 @@ Namespace My.Sys.ComponentModel
             Select Case LCase(PropertyName)
             Case "tag": This.Tag = Value
             Case "name": This.Name = QWString(Value)
+            Case "designmode": This.DesignMode = QBoolean(Value)
             Case Else: Return Base.WriteProperty(PropertyName, Value)
             End Select
         End If
@@ -110,7 +117,7 @@ Namespace My.Sys.ComponentModel
     Property Component.Name(ByRef Value As WString)
         WLet FName, Value
 		#IfDef __USE_GTK__
-			gtk_widget_set_name(widget, Value)
+			If gtk_is_widget(widget) Then gtk_widget_set_name(widget, Value)
 		#EndIf
     End Property
     
@@ -180,6 +187,7 @@ End Type
 		const GDK_KEY_ISO_Left_Tab = &hfe20
 		const GDK_KEY_SPACE = &h020
 		const GDK_KEY_BACKSPACE = &hff08
+		const GDK_KEY_Return = &hff0d
 	#EndIf
 #EndIf
 
@@ -193,6 +201,7 @@ Enum Keys
 		Home = GDK_KEY_HOME
 		EndKey = GDK_KEY_END
 		DeleteKey = GDK_KEY_DELETE
+		Enter = GDK_KEY_RETURN
 	#Else
 		Esc = VK_ESCAPE
 		Left = VK_LEFT
@@ -202,5 +211,18 @@ Enum Keys
 		Home = VK_HOME
 		EndKey = VK_END
 		DeleteKey = VK_DELETE
+		Enter = VK_RETURN
 	#EndIf
 End Enum
+
+Sub ThreadsEnter
+	#IfDef __USE_GTK__
+		gdk_threads_enter()
+	#EndIf
+End Sub
+
+Sub ThreadsLeave
+	#IfDef __USE_GTK__
+		gdk_threads_leave()
+	#EndIf
+End Sub

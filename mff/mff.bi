@@ -1,17 +1,18 @@
 ﻿#IfDef __FB_Win32__
 	#IfDef __FB_64bit__
-	    '#Compile -dll -x "mff64.dll" "mff.rc"
+	    '#Compile -dll -x "../mff64.dll" "mff.rc"
 	#Else
-	    '#Compile -dll -x "mff32.dll" "mff.rc"
+	    '#Compile -dll -x "../mff32.dll" "mff.rc"
 	#EndIf
 #Else
 	#IfDef __FB_64bit__
-	    '#Compile -dll -x "libmff64_gtk2.so"
+	    '#Compile -dll -x "../libmff64_gtk3.so"
 	#Else
-	    '#Compile -dll -x "libmff32_gtk2.so"
+	    '#Compile -dll -x "../libmff32_gtk3.so"
 	#EndIf
 #EndIf
-#Define __USE_GTK2__
+#Define __USE_GTK3__
+#Define __EXPORT_PROCS__
 
 #Include Once "Animate.bi"
 #Include Once "Application.bi"
@@ -77,6 +78,7 @@
 #Include Once "ToolPalette.bi"
 #Include Once "ToolTips.bi"
 #Include Once "TrackBar.bi"
+#Include Once "TreeListView.bi"
 #Include Once "TreeView.bi"
 #Include Once "UpDown.bi"
 #Include Once "WStringList.bi"
@@ -95,6 +97,7 @@ Using My.Sys.Forms
 	End Function
 #EndIf
 
+#IfDef __EXPORT_PROCS__
 Dim Shared Objects As List
 Common Shared Ctrl As Control Ptr
 Function CreateControl Alias "CreateControl"(ByRef ClassName As String, ByRef sName As WString, ByRef Text As WString, lLeft As Integer, lTop As Integer, lWidth As Integer, lHeight As Integer, Parent As Control Ptr) As Control Ptr Export
@@ -127,6 +130,7 @@ Function CreateControl Alias "CreateControl"(ByRef ClassName As String, ByRef sN
     Case "rebar": Ctrl = New ReBar
     Case "richtextbox": Ctrl = New RichTextBox
     Case "tabcontrol": Ctrl = New TabControl
+    Case "tabpage": Ctrl = New TabPage
     Case "scrollbarcontrol": Ctrl = New ScrollBarControl
     Case "hscrollbar": Ctrl = New HScrollBar
     Case "vscrollbar": Ctrl = New VScrollBar
@@ -136,8 +140,8 @@ Function CreateControl Alias "CreateControl"(ByRef ClassName As String, ByRef sN
     Case "textbox": Ctrl = New TextBox
     Case "toolbar": Ctrl = New ToolBar
     Case "toolpalette": Ctrl = New ToolPalette
-    Case "tooltips": Ctrl = New ToolTips
     Case "trackbar": Ctrl = New TrackBar
+    Case "treelistview": Ctrl = New TreeListView
     Case "treeview": Ctrl = New TreeView
     Case "updown": Ctrl = New UpDown
     End Select
@@ -145,7 +149,7 @@ Function CreateControl Alias "CreateControl"(ByRef ClassName As String, ByRef sN
         Ctrl->Name = sName
         Ctrl->WriteProperty("Text", @Text)
         Ctrl->SetBounds lLeft, lTop, lWidth, lHeight
-        Ctrl->Parent = Parent
+        Ctrl->WriteProperty("Parent", Parent)
         Objects.Add Ctrl
     EndIf
     Return Ctrl
@@ -165,6 +169,8 @@ Function CreateComponent Alias "CreateComponent"(ByRef ClassName As String, ByRe
     Case "fontdialog": Cpnt = New FontDialog
     Case "openfiledialog": Cpnt = New OpenFileDialog
     Case "savefiledialog": Cpnt = New SaveFileDialog
+    Case "tooltips": Cpnt = New ToolTips
+    Case Else: Cpnt = CreateControl(ClassName, sName, sName, 0, 0, 10, 10, 0)
     End Select
     If Cpnt Then
         Cpnt->Name = sName
@@ -173,13 +179,19 @@ Function CreateComponent Alias "CreateComponent"(ByRef ClassName As String, ByRe
     Return Cpnt
 End Function
 
+Common Shared Obj As My.Sys.Object Ptr
+Function CreateObject Alias "CreateObject"(ByRef ClassName As String) As Object Ptr Export
+    Obj = 0
+    Select Case LCase(ClassName)
+    Case "menuitem": Obj = New MenuItem
+    Case "toolbutton": Obj = New ToolButton
+    Case Else: Obj = CreateComponent(ClassName, "")
+    End Select
+    Return Obj
+End Function
+
 Function DeleteComponent Alias "DeleteComponent"(Ctrl As Any Ptr) As Boolean Export
-    If Objects.Contains(Ctrl) Then
-        Cpnt = Objects.Item(Objects.IndexOf(Ctrl))
-    Else
-        Return False
-    End If
-    Select Case LCase(Cpnt->ClassName)
+    Select Case LCase(Cast(Component Ptr, Ctrl)->ClassName)
     Case "animate": Delete Cast(Animate Ptr, Ctrl)
     Case "checkbox" :Delete Cast(CheckBox Ptr, Ctrl)
     Case "checkedlistbox": Delete Cast(CheckedListBox Ptr, Ctrl)
@@ -207,6 +219,7 @@ Function DeleteComponent Alias "DeleteComponent"(Ctrl As Any Ptr) As Boolean Exp
     Case "rebar": Delete Cast(ReBar Ptr, Ctrl)
     Case "richtextbox": Delete Cast(RichTextBox Ptr, Ctrl)
     Case "tabcontrol": Delete Cast(TabControl Ptr, Ctrl)
+    Case "tabpage": Delete Cast(TabPage Ptr, Ctrl)
     Case "scrollbarcontrol": Delete Cast(ScrollBarControl Ptr, Ctrl)
     Case "hscrollbar": Delete Cast(HScrollBar Ptr, Ctrl)
     Case "vscrollbar": Delete Cast(VScrollBar Ptr, Ctrl)
@@ -218,6 +231,7 @@ Function DeleteComponent Alias "DeleteComponent"(Ctrl As Any Ptr) As Boolean Exp
     Case "toolpalette": Delete Cast(ToolPalette Ptr, Ctrl)
     Case "tooltips": Delete Cast(ToolTips Ptr, Ctrl)
     Case "trackbar": Delete Cast(TrackBar Ptr, Ctrl)
+    Case "treelistview": Delete Cast(TreeListView Ptr, Ctrl)
     Case "treeview": Delete Cast(TreeView Ptr, Ctrl)
     Case "updown": Delete Cast(UpDown Ptr, Ctrl)
     Case "imagelist": Delete Cast(ImageList Ptr, Ctrl)
@@ -235,6 +249,15 @@ Function DeleteComponent Alias "DeleteComponent"(Ctrl As Any Ptr) As Boolean Exp
     Return True
 End Function
 
+Function ObjectDelete Alias "ObjectDelete"(Obj As Any Ptr) As Boolean Export
+    Select Case LCase(Cast(My.Sys.Object Ptr, Obj)->ClassName)
+    Case "toolbutton": Delete Cast(ToolButton Ptr, Obj)
+    Case "menuitem": Delete Cast(MenuItem Ptr, Obj)
+    Case Else: Return DeleteComponent(Obj)
+    End Select
+    Return True
+End Function
+
 #IfNDef ShowPropertyPage_Off        
 	Function ShowPropertyPage Alias "ShowPropertyPage"(Ctrl As Any Ptr) As Boolean Export
 	    If Objects.Contains(Ctrl) Then
@@ -248,4 +271,5 @@ End Function
 	    End Select
 	    Return True
 	End Function
+#EndIf
 #EndIf

@@ -1,7 +1,12 @@
 ﻿'###############################################################################
-'#  CheckedListBox.bi                                                                 #
-'#  This file is part of MyFBFramework                                       #
-'#  Version 1.0.0                                                              #
+'#  CheckedListBox.bi                                                          #
+'#  This file is part of MyFBFramework                                         #
+'#  Based on:                                                                  #
+'#   TListBox.bi                                                               #
+'#   FreeBasic Windows GUI ToolKit                                             #
+'#   Copyright (c) 2007-2008 Nastase Eodor                                     #
+'#   Version 1.0.0                                                             #
+'#  Modified by Xusinboy Bekchanov (2018-2019)                                 #
 '###############################################################################
 
 #Include Once "Control.bi"
@@ -454,6 +459,7 @@ Namespace My.Sys.Forms
 			Case WM_KEYUP
 				If OnKeyUp Then OnKeyUp(This,Message.wParam,Message.wParam AND &HFFFF)
 			End Select
+			Base.ProcessMessage(Message)
 		End Sub
 	#EndIf
 

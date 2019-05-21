@@ -1,6 +1,7 @@
 ﻿'###############################################################################
-'#  ComboBoxEx.bi                                                                #
-'#  This file is part of MyFBFramework                                        #
+'#  ComboBoxEx.bi                                                              #
+'#  This file is part of MyFBFramework                                         #
+'#  Authors: Xusinboy Bekchanov (2018-2019)                                    #
 '#  Version 1.0.0                                                              #
 '###############################################################################
 
@@ -30,11 +31,11 @@ namespace My.Sys.Forms
             FOverlayIndex   As Integer
             FIndent   As Integer
         Public:
-            Index As Integer
             #IfDef __USE_GTK__
 				TreeIter As GtkTreeIter
             #EndIf
             Parent   As Control Ptr
+            Declare Function Index As Integer
             Declare Property Text ByRef As WString
             Declare Property Text(ByRef Value As WString)
             Declare Property Object As Any Ptr
@@ -69,8 +70,8 @@ namespace My.Sys.Forms
             Declare Property Count(Value As Integer)
             Declare Property Item(Index As Integer) As ComboBoxItem Ptr
             Declare Property Item(Index As Integer, Value As ComboBoxItem Ptr)
-            Declare Function Add(ByRef Caption As WString = "", Obj As Any Ptr = 0, ImageIndex As Integer = -1, SelectedImageIndex As Integer = -1, OverlayIndex As Integer = -1, Indent As Integer = 0) As ComboBoxItem Ptr
-            Declare Function Add(ByRef Caption As WString = "", Obj As Any Ptr = 0, ByRef ImageKey As WString, ByRef SelectedImageKey As WString = "", ByRef OverlayKey As WString = "", Indent As Integer = 0) As ComboBoxItem Ptr
+            Declare Function Add(ByRef Caption As WString = "", Obj As Any Ptr = 0, ImageIndex As Integer = -1, SelectedImageIndex As Integer = -1, OverlayIndex As Integer = -1, Indent As Integer = 0, Index As Integer = -1) As ComboBoxItem Ptr
+            Declare Function Add(ByRef Caption As WString = "", Obj As Any Ptr = 0, ByRef ImageKey As WString, ByRef SelectedImageKey As WString = "", ByRef OverlayKey As WString = "", Indent As Integer = 0, Index As Integer = -1) As ComboBoxItem Ptr
             Declare Sub Remove(Index As Integer)
             Declare Function IndexOf(ByRef Item As ComboBoxItem Ptr) As Integer
             Declare Function IndexOf(ByRef Text As WString) As Integer
@@ -112,6 +113,14 @@ namespace My.Sys.Forms
             Declare Destructor
     End Type
 
+	Function ComboBoxItem.Index As Integer
+		If Parent Then
+			Return Cast(ComboBoxEx Ptr, Parent)->Items.IndexOf(@This)
+		Else
+			Return -1
+		End If
+	End Function
+	
     Property ComboBoxItem.Text ByRef As WString
 '        If Parent AndAlso Parent->Handle Then
 '            WReallocate FText, 255
@@ -136,9 +145,9 @@ namespace My.Sys.Forms
 				Dim cbei As COMBOBOXEXITEM
 				cbei.Mask = CBEIF_TEXT
 				cbei.iItem = Index
-					cbei.pszText    = FText
-					cbei.cchTextMax = Len(*FText)
-				  Parent->Perform CBEM_SETITEM, 0, CInt(@cbei)
+				cbei.pszText    = FText
+				cbei.cchTextMax = Len(*FText)
+				Parent->Perform CBEM_SETITEM, 0, CInt(@cbei)
 			  End If
 		#EndIf 
     End Property
@@ -283,27 +292,34 @@ Property ComboBoxItem.Object As Any Ptr
        'QToolButton(FItems.Items[Index]) = Value 
     End Property
 
-    Function ComboBoxExItems.Add(ByRef FText As WString = "", Obj As Any Ptr = 0, FImageIndex As Integer = -1, FSelectedImageIndex As Integer = -1, FOverlayIndex As Integer = -1, FIndent As Integer = 0) As ComboBoxItem Ptr
+    Function ComboBoxExItems.Add(ByRef FText As WString = "", Obj As Any Ptr = 0, FImageIndex As Integer = -1, FSelectedImageIndex As Integer = -1, FOverlayIndex As Integer = -1, FIndent As Integer = 0, Index As Integer = -1) As ComboBoxItem Ptr
         PItem = New ComboBoxItem
-        FItems.Add PItem
+        If Index = -1 Then
+        	FItems.Add PItem
+        Else
+        	FItems.Insert Index, PItem
+        End If
         With *PItem
-            .ImageIndex     = FImageIndex
-            .SelectedImageIndex     = FSelectedImageIndex
-            .OverlayIndex     = FOverlayIndex
-            .Indent     = FIndent
-            .Text        = FText
-            .Object        = Obj
-            .Index    = FItems.Count - 1
+            .ImageIndex         = FImageIndex
+            .SelectedImageIndex = FSelectedImageIndex
+            .OverlayIndex       = FOverlayIndex
+            .Indent     		= FIndent
+            .Text        		= FText
+            .Object        		= Obj
         End With
         #IfDef __USE_GTK__
-			gtk_list_store_append (Cast(ComboBoxEx Ptr, Parent)->ListStore, @PItem->TreeIter)
+        	#IfDef __USE_GTK3__
+				gtk_list_store_insert(Cast(ComboBoxEx Ptr, Parent)->ListStore, @PItem->TreeIter, Index)
+			#Else
+				gtk_list_store_insert(Cast(ComboBoxEx Ptr, Parent)->ListStore, @PItem->TreeIter, IIf(Index = -1, FItems.Count, Index))
+			#EndIf
 			gtk_list_store_set (Cast(ComboBoxEx Ptr, Parent)->ListStore, @PItem->TreeIter, 1, ToUtf8(FText), -1)
 			'gtk_widget_show_all(Parent->widget)
         #Else
 			cbei.Mask = CBEIF_IMAGE or CBEIF_INDENT Or CBEIF_OVERLAY Or CBEIF_SELECTEDIMAGE Or CBEIF_TEXT
 			cbei.pszText  = @FText
 			cbei.cchTextMax = Len(FText)
-			cbei.iItem = PItem->Index
+			cbei.iItem = IIF(Index = -1, FItems.Count - 1, Index)
 			cbei.iImage   = FImageIndex
 			cbei.iSelectedImage   = FSelectedImageIndex
 			cbei.iOverlay   = FOverlayIndex
@@ -318,15 +334,15 @@ Property ComboBoxItem.Object As Any Ptr
         Return PItem
     End Function
 
-    Function ComboBoxExItems.Add(ByRef FText As WString = "", Obj As Any Ptr = 0, ByRef ImageKey As WString, ByRef SelectedImageKey As WString = "", ByRef OverlayKey As WString = "", Indent As Integer = 0) As ComboBoxItem Ptr
+    Function ComboBoxExItems.Add(ByRef FText As WString = "", Obj As Any Ptr = 0, ByRef ImageKey As WString, ByRef SelectedImageKey As WString = "", ByRef OverlayKey As WString = "", Indent As Integer = 0, Index As Integer = -1) As ComboBoxItem Ptr
         Dim Value As ComboBoxItem Ptr
         If Parent AndAlso Cast(ComboBoxEx Ptr, Parent)->ImagesList Then
             With *Cast(ComboBoxEx Ptr, Parent)->ImagesList
-                Value = Add(FText, Obj, .IndexOf(ImageKey), .IndexOf(SelectedImageKey), .IndexOf(OverlayKey), Indent)
+                Value = Add(FText, Obj, .IndexOf(ImageKey), .IndexOf(SelectedImageKey), .IndexOf(OverlayKey), Indent, Index)
 				Value->ImageKey = ImageKey
             End With
         Else
-            Value = Add(FText, Obj, -1, -1, -1, Indent)
+            Value = Add(FText, Obj, -1, -1, -1, Indent, Index)
         End If
         Return Value
     End Function
@@ -339,7 +355,8 @@ Property ComboBoxItem.Object As Any Ptr
 			#Else
 				Parent->Perform CBEM_DELETEITEM, Index, 0
 			#EndIf
-		End If
+        End If
+        Delete Cast(ComboBoxItem Ptr, FItems.Items[Index])
 		FItems.Remove Index
     End Sub
 

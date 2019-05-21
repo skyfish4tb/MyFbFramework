@@ -1,7 +1,14 @@
 ﻿'###############################################################################
 '#  Splitter.bi                                                                #
-'#  This file is part of MyFBFramework                                           #
-'#  Version 1.0.0                                                              #
+'#  This file is part of MyFBFramework                                         #
+'#  Authors: Nastase Eodor, Xusinboy Bekchanov                                 #
+'#  Based on:                                                                  #
+'#   TSplitter.bi                                                              #
+'#   FreeBasic Windows GUI ToolKit                                             #
+'#   Copyright (c) 2007-2008 Nastase Eodor                                     #
+'#   Version 1.0.0                                                             #
+'#  Updated and added cross-platform                                           #
+'#  by Xusinboy Bekchanov (2018-2019)                                          #
 '###############################################################################
 
 #Include Once "Control.bi"
@@ -121,7 +128,7 @@ Namespace My.Sys.Forms
 				Static As POINT g_OrigCursorPos, g_CurCursorPos
 				Select Case Message.Msg
 				Case WM_SETCURSOR
-					If Cursor <> 0 Then Message.Result = Cast(LResult, SetCursor(Cursor->Handle)): Return
+					If CInt(Cursor <> 0) AndAlso CInt(Not DesignMode) Then Message.Result = Cast(LResult, SetCursor(Cursor->Handle)): Return
 				Case WM_PAINT
 					Dim As Rect R
 					Dim As HDC Dc

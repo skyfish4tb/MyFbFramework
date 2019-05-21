@@ -1,4 +1,10 @@
-﻿#Include Once "SysUtils.bi"
+﻿'################################################################################
+'#  MonthCalendar.bi                                                            #
+'#  This file is part of MyFBFramework                                          #
+'#  Authors: Xusinboy Bekchanov (2018-2019)                                     #
+'################################################################################
+
+#Include Once "SysUtils.bi"
 
 Namespace My.Sys
     #DEFINE QBoolean(__Ptr__) *Cast(Boolean Ptr,__Ptr__)
@@ -95,20 +101,22 @@ Namespace My.Sys
 
 End Namespace
 
-#IfNDef ToString_Off
-	Function ToString Alias "ToString"(Obj As My.Sys.Object Ptr) ByRef As WString Export
-	    Return Obj->ToString
-	End Function
-#EndIf
-
-#IfNDef ReadProperty_Off
-	Function ReadProperty Alias "ReadProperty"(Ctrl As My.Sys.Object Ptr, ByRef PropertyName As String) As Any Ptr Export
-		Return Ctrl->ReadProperty(PropertyName)
-	End Function
-#EndIf
-
-#IfNDef WriteProperty_Off
-	Function WriteProperty Alias "WriteProperty"(Ctrl As My.Sys.Object Ptr, ByRef PropertyName As String, Value As Any Ptr) As Boolean Export
-		Return Ctrl->WriteProperty(PropertyName, Value)
-	End Function
+#IfDef __EXPORT_PROCS__
+	#IfNDef ToString_Off
+		Function ToString Alias "ToString"(Obj As My.Sys.Object Ptr) ByRef As WString Export
+		    Return Obj->ToString
+		End Function
+	#EndIf
+	
+	#IfNDef ReadProperty_Off
+		Function ReadProperty Alias "ReadProperty"(Ctrl As My.Sys.Object Ptr, ByRef PropertyName As String) As Any Ptr Export
+			Return Ctrl->ReadProperty(PropertyName)
+		End Function
+	#EndIf
+	
+	#IfNDef WriteProperty_Off
+		Function WriteProperty Alias "WriteProperty"(Ctrl As My.Sys.Object Ptr, ByRef PropertyName As String, Value As Any Ptr) As Boolean Export
+			Return Ctrl->WriteProperty(PropertyName, Value)
+		End Function
+	#EndIf
 #EndIf

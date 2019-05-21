@@ -1,7 +1,14 @@
 ﻿'###############################################################################
 '#  GroupBox.bi                                                                #
-'#  This file is part of MyFBFramework                                       #
-'#  Version 1.0.0                                                              #
+'#  This file is part of MyFBFramework                                         #
+'#  Authors: Nastase Eodor, Xusinboy Bekchanov                                 #
+'#  Based on:                                                                  #
+'#   TGroupBox.bi                                                              #
+'#   FreeBasic Windows GUI ToolKit                                             #
+'#   Copyright (c) 2007-2008 Nastase Eodor                                     #
+'#   Version 1.0.0                                                             #
+'#  Updated and added cross-platform                                           #
+'#  by Xusinboy Bekchanov (2018-2019)                                          #
 '###############################################################################
 
 #include Once "ContainerControl.bi"
@@ -14,14 +21,14 @@ Namespace My.Sys.Forms
             FParentColor As Integer
             #IfNDef __USE_GTK__
 				Declare Static Sub WndProc(BYREF Message As Message)
-				Declare Sub ProcessMessage(BYREF Message As Message)
+				Declare Virtual Sub ProcessMessage(BYREF Message As Message)
 			#EndIf
         Public:
             Declare Property Caption ByRef As WString
             Declare Property Caption(ByRef Value As WString)
             Declare Property ParentColor As Boolean
             Declare Property ParentColor(Value As Boolean)
-            Declare Operator Cast As Control Ptr 
+            Declare Operator Cast As Control Ptr
             Declare Constructor
             Declare Destructor
             OnClick As Sub(BYREF Sender As GroupBox)
@@ -64,11 +71,16 @@ Namespace My.Sys.Forms
 
 		Sub GroupBox.ProcessMessage(BYREF Message As Message)
 			Select Case Message.Msg
+			Case WM_PAINT
+				'Message.Result = True
+				'Return
+			Case WM_COMMAND
+            	CallWindowProc(@SuperWndProc, GetParent(Handle), Message.Msg, Message.wParam, Message.lParam)
 			Case CM_CTLCOLOR
 				 Static As HDC Dc
 				 Dc = Cast(HDC, Message.wParam)
 				 SetBKMode Dc, TRANSPARENT
-				 SetTextColor Dc, Font.Color
+				 SetTextColor Dc, This.Font.Color
 				 SetBKColor Dc, This.BackColor
 				 SetBKMode Dc, OPAQUE
 			Case CM_COMMAND
@@ -76,6 +88,7 @@ Namespace My.Sys.Forms
 					If OnClick Then OnClick(This)
 				End If
 			End Select
+			Base.ProcessMessage(Message)
 		End Sub
 	#EndIf
 
@@ -97,7 +110,7 @@ Namespace My.Sys.Forms
             WLet FClassAncestor, "Button"
             #IfNDef __USE_GTK__
 				.ExStyle     = WS_EX_TRANSPARENT
-				.Style       = WS_CHILD OR BS_GROUPBOX
+				.Style       = WS_CHILD OR WS_VISIBLE Or BS_GROUPBOX 'Or SS_NOPREFIX
 				.BackColor       = GetSysColor(COLOR_BTNFACE)
 			#EndIf
             .Width       = 121

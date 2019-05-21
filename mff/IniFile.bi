@@ -1,7 +1,13 @@
 ﻿'###############################################################################
 '#  IniFile.bi                                                                 #
-'#  This file is part of MyFBFramework                                           #
-'#  Version 1.0.0                                                              #
+'#  This file is part of MyFBFramework                                         #
+'#  Authors: Nastase Eodor, Xusinboy Bekchanov                                 #
+'#  Based on:                                                                  #
+'#   TIniFile.bi                                                               #
+'#   FreeBasic Windows GUI ToolKit                                             #
+'#   Copyright (c) 2007-2008 Nastase Eodor                                     #
+'#   Version 1.0.0                                                             #
+'#  Modified by Xusinboy Bekchanov (2018-2019)                                 #
 '###############################################################################
 
 #Include Once "StringList.bi"
@@ -21,7 +27,7 @@ Type IniFile
         Declare Property File(ByRef Value As WString)
         Declare Property SectionCount As Integer
         Declare Property SectionCount(Value As Integer)
-        Declare Sub Create(ByRef sFile As WString = "") 
+        Declare Sub Load(ByRef sFile As WString = "") 
         Declare Sub WriteInteger(ByRef Section As WString, ByRef Key As WString, Value As Integer)
         Declare Sub WriteFloat(ByRef Section As WString, ByRef Key As WString, Value As Double)
         Declare Sub WriteBool(ByRef Section As WString, ByRef Key As WString, Value As Boolean)
@@ -89,7 +95,7 @@ Function IniFile.KeyExists(ByRef Section As WString, ByRef Key As WString) As In
     Return -1
 End Function
 
-Sub IniFile.Create(ByRef sFile As WString = "")
+Sub IniFile.Load(ByRef sFile As WString = "")
     FLines.Clear
     If sFile <> "" Then WLet FFile, sFile
     Dim As Integer ff = FreeFile
@@ -102,10 +108,6 @@ Sub IniFile.Create(ByRef sFile As WString = "")
         WEnd
         Close #ff
         Deallocate s
-    Else
-        If Open(File For Binary Access Write As #ff) = 0 Then
-           Close #ff
-        End If
     End If 
 End Sub
 

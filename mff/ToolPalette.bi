@@ -1,7 +1,14 @@
 ﻿'###############################################################################
-'#  ToolPalette.bi                                                                 #
-'#  This file is part of MyFBFramework                                            #
-'#  Version 1.0.0                                                              #
+'#  ToolPalette.bi                                                             #
+'#  This file is part of MyFBFramework                                         #
+'#  Authors: Nastase Eodor, Xusinboy Bekchanov                                 #
+'#  Based on:                                                                  #
+'#   TToolBar.bi                                                               #
+'#   FreeBasic Windows GUI ToolKit                                             #
+'#   Copyright (c) 2007-2008 Nastase Eodor                                     #
+'#   Version 1.0.0                                                             #
+'#  Adapted to ToolPalette and added cross-platform                            #
+'#  by Xusinboy Bekchanov (2018-2019)                                          #
 '###############################################################################
 
 #Include Once "ToolBar.bi"
@@ -545,7 +552,7 @@ Namespace My.Sys.Forms
 			'		End With
 			'	Next j
 			'Next i
-			gtk_widget_queue_resize(widget)
+			If gtk_is_container(widget) Then gtk_widget_queue_resize(widget)
 			gtk_widget_queue_draw(widget) 
 		#Else
 			For j As Integer = 0 To Groups.Count - 1

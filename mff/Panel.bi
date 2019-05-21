@@ -1,7 +1,14 @@
 ﻿'###############################################################################
 '#  Panel.bi                                                                   #
-'#  This file is part of MyFBFramework		                               #
-'#  Version 1.0.0                                                              #
+'#  This file is part of MyFBFramework                                         #
+'#  Authors: Nastase Eodor, Xusinboy Bekchanov                                 #
+'#  Based on:                                                                  #
+'#   TPanel.bi                                                                 #
+'#   FreeBasic Windows GUI ToolKit                                             #
+'#   Copyright (c) 2007-2008 Nastase Eodor                                     #
+'#   Version 1.0.0                                                             #
+'#  Updated and added cross-platform                                           #
+'#  by Xusinboy Bekchanov (2018-2019)                                          #
 '###############################################################################
 
 #Include Once "ContainerControl.bi"
@@ -22,7 +29,6 @@ Namespace My.Sys.Forms
 			FBevelOuter  As Integer
 			FBorderWidth As Integer
 			FBevelWidth  As Integer
-			Declare Sub ProcessMessage(BYREF Message As Message)
 			#IfNDef __USE_GTK__
 				Declare Static Sub HandleIsAllocated(BYREF Sender As Control)
 				Declare Static Sub WndProc(BYREF Message As Message)
@@ -31,6 +37,7 @@ Namespace My.Sys.Forms
 				Declare Sub Frame3D(R As RECT, AWidth As Integer)
 			#EndIf
 		Public:
+			Declare Virtual Sub ProcessMessage(ByRef Message As Message)
 			'Canvas        As My.Sys.Drawing.Canvas
 			Declare Property BevelInner As Integer
 			Declare Property BevelInner(Value As Integer)
