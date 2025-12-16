@@ -4,74 +4,67 @@
 '#  Authors: Xusinboy Bekchanov                                                #
 '###############################################################################
 
-#Include Once "Control.bi"
+#include once "Control.bi"
 
 Namespace My.Sys.Forms
-    #DEFINE QIPAddress(__Ptr__) *Cast(IPAddress Ptr, __Ptr__)
-    
-    Type IPAddress Extends Control
-        Private:
-			#IfNdef __USE_GTK__
-				Declare Static Sub WndProc(ByRef Message As Message)
-				Declare Sub ProcessMessage(ByRef Message As Message)
-				Declare Static Sub HandleIsAllocated(ByRef Sender As My.Sys.Forms.Control)
-			#EndIf
-        Public:
-            Declare Operator Cast As My.Sys.Forms.Control Ptr
-            Declare Constructor
-            Declare Destructor
-    End Type
-    
-    #IfNdef __USE_GTK__
-		Sub IPAddress.HandleIsAllocated(ByRef Sender As My.Sys.Forms.Control)
-			If Sender.Child Then
-				With QIPAddress(Sender.Child)
-					 
-				End With
-			End If
-		End Sub
-
-		Sub IPAddress.WndProc(ByRef Message As Message)
-		End Sub
-
-		Sub IPAddress.ProcessMessage(ByRef Message As Message)
-			Base.ProcessMessage Message
-		End Sub
-	#EndIf
-
-    Operator IPAddress.Cast As My.Sys.Forms.Control Ptr
-         Return Cast(My.Sys.Forms.Control Ptr, @This)
-    End Operator
-
-    Constructor IPAddress
-		#IfNdef __USE_GTK__
-			Dim As INITCOMMONCONTROLSEX icex
-
-			icex.dwSize = sizeof(INITCOMMONCONTROLSEX)
-			icex.dwICC =  ICC_INTERNET_CLASSES
-
-			InitCommonControlsEx(@icex)
-		#EndIf
-
-        With This
-			WLet FClassName, "IPAddress"
-			#IfNdef __USE_GTK__
-				.RegisterClass "IPAddress", WC_IPADDRESS
-				WLet FClassAncestor, WC_IPADDRESS
-				.ExStyle      = 0
-				.Style        = WS_CHILD
-				.ChildProc    = @WndProc
-				.OnHandleIsAllocated = @HandleIsAllocated
-			#EndIf
-            .Width        = 100
-            .Height       = 32
-            .Child        = @This
-        End With
-    End Constructor
-
-    Destructor IPAddress
-		#IfNdef __USE_GTK__
-			UnregisterClass "IPAddress",GetModuleHandle(NULL)
-		#EndIf
-    End Destructor
+	#define QIPAddress(__Ptr__) (*Cast(IPAddress Ptr, __Ptr__))
+	
+	'`IPAddress` is a Control within the MyFbFramework, part of the freeBasic framework.
+	'`IPAddress` - An Internet Protocol (IP) address control allows the user to enter an IP address in an easily understood format.
+	Private Type IPAddress Extends Control
+	Private:
+	Protected:
+		#ifdef __USE_GTK__
+			Dim As GtkWidget Ptr Layouts(3), Entries(3), CurrentEntry
+			Dim As PangoContext Ptr pcontext
+			Dim As PangoLayout Ptr layout
+			Dim As GdkDisplay Ptr pdisplay
+			Dim As GdkWindow Ptr win
+			Dim As Boolean bCreated
+			Dim As Integer Position
+			Declare Static Sub Layout_SizeAllocate(widget As GtkWidget Ptr, allocation As GdkRectangle Ptr, user_data As Any Ptr)
+			Declare Static Function Layout_Draw(widget As GtkWidget Ptr, cr As cairo_t Ptr, data1 As Any Ptr) As Boolean
+			Declare Static Function Layout_ExposeEvent(widget As GtkWidget Ptr, Event As GdkEventExpose Ptr, data1 As Any Ptr) As Boolean
+			Declare Static Function Entry_KeyPress(widget As GtkWidget Ptr, Event As GdkEvent Ptr, user_data As Any Ptr) As Boolean
+			Declare Static Sub Entry_Activate(entry As GtkEntry Ptr, user_data As Any Ptr)
+			Declare Static Sub Entry_Changed(entry As GtkEntry Ptr, user_data As Any Ptr)
+			Declare Static Sub Entry_GrabFocus(widget As GtkWidget Ptr, user_data As Any Ptr)
+		#else
+			Declare Static Sub WndProc(ByRef Message As Message)
+			Declare Static Sub HandleIsAllocated(ByRef Sender As My.Sys.Forms.Control)
+			Declare Static Function IPAddressWndProc(FWindow As HWND, Msg As UINT, wParam As WPARAM, lParam As LPARAM) As LRESULT
+		#endif
+		Declare Virtual Sub ProcessMessage(ByRef Message As Message)
+	Public:
+		#ifndef ReadProperty_Off
+			'Loads IP configuration from stream
+			Declare Virtual Function ReadProperty(PropertyName As String) As Any Ptr
+		#endif
+		#ifndef WriteProperty_Off
+			'Saves IP configuration to stream
+			Declare Virtual Function WriteProperty(PropertyName As String, Value As Any Ptr) As Boolean
+		#endif
+		Declare Property TabIndex As Integer
+		'Controls focus order in tab sequence
+		Declare Property TabIndex(Value As Integer)
+		Declare Property TabStop As Boolean
+		'Enables/disables focus via Tab key
+		Declare Property TabStop(Value As Boolean)
+		Declare Property Text ByRef As WString
+		'Current IP address in dotted notation (e.g., "192.168.1.1")
+		Declare Property Text(ByRef Value As WString)
+		Declare Operator Cast As My.Sys.Forms.Control Ptr
+		'Resets all fields to zero values
+		Declare Sub Clear
+		Declare Constructor
+		Declare Destructor
+		'Triggered when any address field is modified
+		OnChange        As Sub(ByRef Designer As My.Sys.Object, ByRef Sender As IPAddress)
+		'Raised when specific octet changes
+		OnFieldChanged  As Sub(ByRef Designer As My.Sys.Object, ByRef Sender As IPAddress, iField As Integer, iValue As Integer)
+	End Type
 End Namespace
+
+#ifndef __USE_MAKE__
+	#include once "IPAddress.bas"
+#endif

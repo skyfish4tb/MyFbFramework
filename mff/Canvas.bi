@@ -1,41 +1,93 @@
-﻿'###############################################################################
-'#  Canvas.bi                                                                  #
-'#  This file is part of MyFBFramework                                         #
-'#  Authors: Nastase Eodor, Xusinboy Bekchanov                                 #
-'#  Based on:                                                                  #
-'#   TCanvas.bi                                                                #
-'#   FreeBasic Windows GUI ToolKit                                             #
-'#   Copyright (c) 2007-2008 Nastase Eodor                                     #
-'#   Version 1.0.0                                                             #
-'###############################################################################
+﻿'################################################################################
+'#  Canvas.bi                                                                   #
+'#  This file is part of MyFBFramework                                          #
+'#  Authors: Nastase Eodor, Xusinboy Bekchanov, Liu XiaLin                      #
+'#  Based on:                                                                   #
+'#   TCanvas.bi                                                                 #
+'#   FreeBasic Windows GUI ToolKit                                              #
+'#   Copyright (c) 2007-2008 Nastase Eodor                                      #
+'#   Version 1.0.0                                                              #
+'################################################################################
 
-#Include Once "Graphics.bi"
-#Include Once "Control.bi"
-
-#IfDef __USE_GTK__
-    Type Point
-    	X As Integer
-    	Y As Integer
-    End Type
-    
-    Type Rect
-    	Left As Integer
-    	Top As Integer
-    	Right As Integer
-    	Bottom As Integer
-    End Type
-#EndIf
+#include once "Graphics.bi"
+#include once "Component.bi"
+#if defined(__USE_CAIRO__) AndAlso Not defined(__USE_GTK__)
+	#include once "cairo/cairo-win32.bi"
+	#define G_PI 3.141593
+#endif
+#ifdef __USE_WINAPI__
+	#include once "D2D1/D2D1.bi"
+	#include once "crt/limits.bi"
+#endif
 
 Namespace My.Sys.Drawing
-	#DEFINE QCanvas(__Ptr__)  *Cast(Canvas Ptr,__Ptr__)
+	#define QCanvas(__Ptr__) (*Cast(Canvas Ptr, __Ptr__))
+	
+	Private Type Rect
+		Left As Long
+		Top As Long
+		Right As Long
+		Bottom As Long
+	End Type
+	
+	Private Type Point
+		X As Long
+		Y As Long
+	End Type
 
-	#IfDef __USE_GTK__
-		Enum FillStyle
-			fsSurface	
-			fsBorder	
+	Private Type PointF
+		X As Single
+		Y As Single
+	End Type
+	
+	Private Type Size
+		Width As Long
+		Height As Long
+	End Type
+	
+	#ifdef __USE_WINAPI__
+		Private Type GpLineGradientParameter
+			PointFrom  As GpPointF
+			PointTo    As GpPointF
+			ColorStart As Long
+			ColorEnd   As Long
+			WrapModes  As WrapMode
+		End Type
+		
+		Private Enum FillStyle
+			fsSurface = FLOODFILLSURFACE
+			fsBorder  = FLOODFILLBORDER
 		End Enum
-
-		Enum CopyMode
+		
+		Private Enum CopyMode
+			cmBlackness   = BLACKNESS
+			cmDestInvert  = DSTINVERT
+			cmMergeCopy   = MERGECOPY
+			cmMergePaint  = MERGEPAINT
+			cmNotSrcCopy  = NOTSRCCOPY
+			cmNotSrcErase = NOTSRCERASE
+			cmPatCopy     = PATCOPY
+			cmPatInvert   = PATINVERT
+			cmPatPaint    = PATPAINT
+			cmSecAnd      = SRCAND
+			cmSrcCopy     = SRCCOPY
+			cmSrcErase    = SRCERASE
+			cmSrcInvert   = SRCINVERT
+			cmSrcPaint    = SRCPAINT
+			cmWithness    = WHITENESS
+		End Enum
+		
+		Private Enum BrushFillMode
+			bmOpaque        = OPAQUE
+			bmTransparent   = TRANSPARENT
+		End Enum
+	#else
+		Private Enum FillStyle
+			fsSurface
+			fsBorder
+		End Enum
+		
+		Private Enum CopyMode
 			cmBlackness
 			cmDestInvert
 			cmMergeCopy
@@ -53,444 +105,192 @@ Namespace My.Sys.Drawing
 			cmWithness
 		End Enum
 		
-	#Else
-		Enum FillStyle
-			fsSurface = FLOODFILLSURFACE	
-			fsBorder  = FLOODFILLBORDER	
+		Private Enum BrushFillMode
+			bmOpaque
+			bmTransparent
 		End Enum
-
-		Enum CopyMode
-			cmBlackness   = BLACKNESS
-			cmDestInvert  = DSTINVERT
-			cmMergeCopy   = MERGECOPY
-			cmMergePaint  = MERGEPAINT
-			cmNotSrcCopy  = NOTSRCCOPY
-			cmNotSrcErase = NOTSRCERASE
-			cmPatCopy     = PATCOPY
-			cmPatInvert   = PATINVERT
-			cmPatPaint    = PATPAINT
-			cmSecAnd      = SRCAND
-			cmSrcCopy     = SRCCOPY
-			cmSrcErase    = SRCERASE
-			cmSrcInvert   = SRCINVERT
-			cmSrcPaint    = SRCPAINT
-			cmWithness    = WHITENESS
-		End Enum
-	#EndIf
+	#endif
 	
-	Type Canvas Extends My.Sys.Object
-		Private:
-			ParentControl As My.Sys.Forms.Control Ptr
-			Declare Sub GetDevice
-			Declare Sub ReleaseDevice
-			iTemp As Integer
-		Public:
-			#IfNDef __USE_GTK__
-				Handle        As HDC
-			#EndIf
-			Pen           As My.Sys.Drawing.Pen
-			Brush         As My.Sys.Drawing.Brush
-			Font          As My.Sys.Drawing.Font
-			Clip          As Boolean
-			CopyMode      As CopyMode
+	Private Type Canvas Extends My.Sys.Object
+	Private:
+		ParentControl As My.Sys.ComponentModel.Component Ptr
+		Declare Static Sub Font_Create(ByRef Designer As My.Sys.Object, ByRef Sender As Font)
+		Declare Static Sub Pen_Create(ByRef Designer As My.Sys.Object, ByRef Sender As Pen)
+		Declare Static Sub Brush_Create(ByRef Designer As My.Sys.Object, ByRef Sender As Brush)
+		iTemp           As Integer
+		FBackColor      As Integer
+		FFillColor      As Integer
+		FFillMode       As BrushFillMode
+		FHatchStyle     As HatchStyles
+		FFillStyles     As BrushStyles
+		FDrawColor      As Integer
+		FDrawStyle      As PenStyle
+		FDrawWidth      As Integer
+		FScaleWidth     As Long
+		FScaleHeight    As Long
+		FBmpWidth       As Long
+		FBmpHeight      As Long
+		FDoubleBuffer   As Boolean
+		FUsingGdip      As Boolean
+		imgScaleX       As Double
+		imgScaleY       As Double
+		imgOffsetX      As Double
+		imgOffsetY      As Double
+		FMoveToX        As Double
+		FMoveToY        As Double
+		FUseDirect2D    As Boolean
+	Protected:
+		#ifdef __USE_GTK__
+			Dim As PangoContext Ptr pcontext
+			#ifdef __USE_GTK4__
+				Dim As cairo_region_t Ptr cairoRegion
+				Dim As GdkDrawingContext Ptr DrawingContext
+			#endif
+		#elseif defined(__USE_CAIRO__)
+			Dim As cairo_surface_t Ptr cairoSurface
+			Dim As HDC DeviceContextHandle
+		#elseif defined(__USE_WINAPI__)
+			#ifdef __FB_64BIT__
+				Dim FGdipStartupInput As GdiplusStartupInput  'GDI+ startup info
+			#else
+				Dim FGdipStartupInput As Gdiplus.GdiplusStartupInput  'GDI+ startup info
+			#endif
+			Dim PrevWidth As Integer = 0
+			Dim PrevHeight As Integer = 0
+			Dim pRenderTarget As ID2D1DeviceContext Ptr = 0
+			Dim pTargetBitmap As ID2D1Bitmap1 Ptr = 0
+			Dim pSwapChain As IDXGISwapChain1 Ptr = 0
+			Dim pSurface As IDXGISurface Ptr = 0
+			Dim pTexture As ID3D11Texture2D Ptr = 0
+			Dim pFormat As IDWriteTextFormat Ptr = 0
+			Dim pForegroundBrush As ID2D1Brush Ptr = 0
+			Dim pBackgroundBrush As ID2D1Brush Ptr = 0
+			Declare Sub ReleaseDirect2D
+		#endif
+	Public:
+		HandleSetted As Boolean
+		FillGradient As Boolean
+		FillOpacity As Long
+		BackColorOpacity As Long
+		#ifdef __USE_CAIRO__
+			Handle  As cairo_t Ptr
+			#ifdef __USE_GTK__
+				Dim As PangoLayout Ptr layout
+			#endif
+		#elseif defined(__USE_WINAPI__)
+			Declare Function CreateD2DBitmapFromHBITMAP(ByVal pRT As ID2D1DeviceContext Ptr, ByVal hBmp As HBITMAP, ByRef pOut As ID2D1Bitmap Ptr) As HRESULT
+			Handle  As HDC
+			GdipToken As ULONG_PTR
+			GdipGraphics As GpGraphics Ptr
+			GdipBrush As GpBrush Ptr
+			GdipPen As GpPen Ptr
+			GdipFont As GpFont Ptr
+			GdipHatchStyles As GpHatchStyle = HatchStyleCross
+			GpLineGradientPara As GpLineGradientParameter
+		#elseif defined(__USE_JNI__)
+			Handle  As jobject
+		#else
+			Handle  As Any Ptr
+		#endif
+		Pen         As My.Sys.Drawing.Pen
+		Brush       As My.Sys.Drawing.Brush
+		Font        As My.Sys.Drawing.Font
+		Clip        As Boolean
+		CopyMode    As CopyMode
+		UsingGdip As Boolean
+		Declare Function GetDevice As Any Ptr
+		Declare Sub ReleaseDevice(Handle As Any Ptr = 0)
+		#ifndef ReadProperty_Off
 			Declare Virtual Function ReadProperty(ByRef PropertyName As String) As Any Ptr
+		#endif
+		#ifndef WriteProperty_Off
 			Declare Virtual Function WriteProperty(ByRef PropertyName As String, Value As Any Ptr) As Boolean
-			Declare Property Width As Integer
-			Declare Property Height As Integer
-			Declare Property Ctrl As My.Sys.Forms.Control Ptr
-			Declare Property Ctrl (Value As My.Sys.Forms.Control Ptr)
-			Declare Property Pixel(xy As Point) As Integer
-			Declare Property Pixel(xy As Point,Value As Integer)
-			Declare Sub MoveTo(x As Integer,y As Integer)
-			Declare Sub LineTo(x As Integer,y As Integer)
-			Declare Sub Line(x As Integer,y As Integer,x1 As Integer,y1 As Integer)
-			Declare Sub Rectangle Overload(x As Integer,y As Integer,x1 As Integer,y1 As Integer)
-			Declare Sub Rectangle(R As Rect)
-			Declare Sub Ellipse Overload(x As Integer,y As Integer,x1 As Integer,y1 As Integer)
-			Declare Sub Ellipse(R As Rect)
-			Declare Sub RoundRect Overload(x As Integer,y As Integer,x1 As Integer,y1 As Integer,nWidth As Integer,nHeight As Integer)
-			Declare Sub RoundRect(R As Rect, nWidth As Integer, nHeight As Integer)
-			Declare Sub Polygon(Points As Point Ptr,Count As Integer) 
-			Declare Sub Pie(x As Integer,y As Integer,x1 As Integer,y1 As Integer,nXRadial1 As Integer,nYRadial1 As Integer,nXRadial2 As Integer,nYRadial2 As Integer)
-			Declare Sub Arc(x As Integer,y As Integer,x1 As Integer,y1 As Integer,xStart As Integer, yStart As Integer,xEnd As Integer,yEnd As Integer)
-			Declare Sub ArcTo(x As Integer,y As Integer,x1 As Integer,y1 As Integer,nXRadial1 As Integer,nYRadial1 As Integer,nXRadial2 As Integer,nYRadial2 As Integer)
-			Declare Sub AngleArc(x As Integer,y As Integer,Radius As Integer,StartAngle As Single,SweepAngle As Single)
-			Declare Sub Chord(x As Integer,y As Integer,x1 As Integer,y1 As Integer,nXRadial1 As Integer,nYRadial1 As Integer,nXRadial2 As Integer,nYRadial2 As Integer)
-			Declare Sub Polyline(Points As Point Ptr,Count As Integer)
-			Declare Sub PolylineTo(Points As Point Ptr,Count As Integer)
-			Declare Sub PolyBeizer(Points As Point Ptr,Count As Integer)
-			Declare Sub PolyBeizerTo(Points As Point Ptr,Count As Integer)
-			Declare Sub SetPixel(x As Integer,y As Integer,PixelColor As Integer)
-			Declare Function GetPixel(x As Integer,y As Integer) As Integer
-			Declare Sub TextOut(x As Integer,y As Integer,ByRef s As WString,FG As Integer,BK As Integer)
-			Declare Sub Draw(x As Integer,y As Integer,Image As Any Ptr)
-			Declare Sub StretchDraw(x As Integer,y As Integer,nWidth As Integer,nHeight As Integer,Image As Any Ptr)
-			Declare Sub CopyRect(Dest As Rect, Canvas As Canvas, Source As Rect)
-			Declare Sub FloodFill(x As Integer,y As Integer,FillColor As Integer,FillStyle As FillStyle)
-			Declare Sub FillRect(R As Rect, FillColor As Integer = -1)
-			Declare Sub DrawFocusRect(R As Rect)
-			Declare Function TextWidth(ByRef FText As WString) As Integer
-			Declare Function TextHeight(ByRef FText As WString) As Integer
-			Declare Operator Cast As Any Ptr
-			Declare Constructor
-			Declare Destructor
+		#endif
+		Declare Property Width As Integer
+		Declare Property Height As Integer
+		Declare Property Ctrl As My.Sys.ComponentModel.Component Ptr
+		Declare Property Ctrl (Value As My.Sys.ComponentModel.Component Ptr)
+		Declare Property BackColor As Integer
+		Declare Property BackColor(Value As Integer)
+		Declare Property Pixel(xy As Point) As Integer
+		Declare Property Pixel(xy As Point, Value As Integer)
+		Declare Sub Scale(x As Double, y As Double, x1 As Double, y1 As Double)
+		Declare Property ScaleWidth As Integer
+		Declare Property ScaleHeight As Integer
+		Declare Property DrawWidth As Integer
+		Declare Property DrawWidth(Value As Integer)
+		Declare Property DrawColor As Integer
+		Declare Property DrawColor(Value As Integer)
+		Declare Property DrawStyle As PenStyle
+		Declare Property DrawStyle(Value As PenStyle)
+		Declare Property FillColor As Integer
+		Declare Property FillColor(Value As Integer)
+		Declare Property FillMode As BrushFillMode
+		Declare Property FillMode(Value As BrushFillMode)
+		Declare Property HatchStyle As HatchStyles
+		Declare Property HatchStyle(Value As HatchStyles)
+		Declare Property FillStyles As BrushStyles
+		Declare Property FillStyles(Value As BrushStyles)
+		Declare Property UseDirect2D As Boolean
+		Declare Property UseDirect2D(Value As Boolean)
+		Declare Sub Cls(x As Double = 0, y As Double = 0, x1 As Double = 0, y1 As Double = 0)
+		Declare Sub MoveTo(x As Double,y As Double)
+		Declare Sub LineTo(x As Double,y As Double)
+		Declare Sub Line(x As Double, y As Double, x1 As Double, y1 As Double, FillColorBK As Integer = -1, BF As String = "" )
+		Declare Sub Rectangle Overload(x As Double, y As Double, x1 As Double, y1 As Double)
+		Declare Sub Rectangle(R As Rect)
+		Declare Sub Ellipse Overload(x As Double, y As Double, x1 As Double, y1 As Double)
+		Declare Sub Ellipse(R As Rect)
+		Declare Sub Circle(x As Double, y As Double, Radial As Double, FillColorBK As Integer = -1)
+		Declare Sub RoundRect Overload(x As Double, y As Double, x1 As Double, y1 As Double, nWidth As Integer, nHeight As Integer)
+		Declare Sub RoundRect(R As Rect, nWidth As Integer, nHeight As Integer)
+		Declare Sub Polygon(Points() As Point, Count As Long)
+		Declare Sub Pie(x As Double, y As Double, x1 As Double, y1 As Double, nXRadial1 As Double, nYRadial1 As Double, nXRadial2 As Double, nYRadial2 As Double)
+		Declare Sub Arc(x As Double, y As Double, x1 As Double, y1 As Double, xStart As Double, yStart As Double, xEnd As Double = 0, yEnd As Double = 0)
+		Declare Sub ArcTo(x As Double, y As Double, x1 As Double, y1 As Double, nXRadial1 As Double, nYRadial1 As Double, nXRadial2 As Double, nYRadial2 As Double)
+		Declare Sub AngleArc(x As Double, y As Double, Radius As Double, StartAngle As Double, SweepAngle As Double)
+		Declare Sub Chord(x As Double, y As Double, x1 As Double, y1 As Double, nXRadial1 As Double, nYRadial1 As Double, nXRadial2 As Double, nYRadial2 As Double)
+		Declare Sub Polyline(Points() As Point, Count As Long)
+		Declare Sub PolylineTo(Points() As Point, Count As Long)
+		Declare Sub PolyBeizer(Points() As Point, Count As Long)
+		Declare Sub PolyBeizerTo(Points() As Point, Count As Long)
+		Declare Sub SetPixel(x As Double, y As Double, PixelColor As Integer)
+		Declare Function GetPixel(x As Double, y As Double) As Integer
+		Declare Function Get(x As Double, y As Double, nWidth As Integer, nHeight As Integer, ByRef ImageSource As My.Sys.Drawing.BitmapType) As Any Ptr
+		Declare Function Get(x As Double, y As Double, nWidth As Integer, nHeight As Integer, ByVal ImageSource As Any Ptr) As Any Ptr
+		#ifdef __USE_CAIRO__
+			Declare Sub SetHandle(CanvasHandle As cairo_t Ptr)
+		#endif
+		#ifdef __USE_WINAPI__
+			Declare Sub SetHandle(CanvasHandle As HDC)
+		#elseif defined(__USE_JNI__)
+			Declare Sub SetHandle(CanvasHandle As jobject)
+		#elseif Not defined(__USE_CAIRO__)
+			Declare Sub SetHandle(CanvasHandle As Any Ptr)
+		#endif
+		Declare Sub UnSetHandle()
+		Declare Sub TextOut(x As Double, y As Double, ByRef s As WString, FG As Integer = -1, BK As Integer = -1)
+		Declare Sub DrawTransparent(x As Double, y As Double, Image As Any Ptr, cTransparentColor As UInteger = 0)
+		Declare Sub DrawTransparent(x As Double, y As Double, ByRef Image As My.Sys.Drawing.BitmapType, cTransparentColor As UInteger = 0)
+		Declare Sub DrawAlpha(x As Double, y As Double, nWidth As Double = -1, nHeight As Double = -1, ByVal Image As Any Ptr, iSourceAlpha As Integer = 255)
+		Declare Sub DrawAlpha(x As Double, y As Double, nWidth As Double = -1, nHeight As Double = -1, ByRef Image As My.Sys.Drawing.BitmapType, iSourceAlpha As Integer = 255)
+		Declare Sub Draw(x As Double, y As Double, Image As Any Ptr)
+		Declare Sub Draw(x As Double, y As Double, ByRef Image As My.Sys.Drawing.BitmapType)
+		Declare Sub Draw(x As Double, y As Double, ByRef Image As My.Sys.Drawing.Icon)
+		Declare Sub DrawStretch(x As Double, y As Double, nWidth As Integer, nHeight As Integer, Image As Any Ptr)
+		Declare Sub CopyRect(Dest As Rect, Canvas As Canvas, Source As Rect)
+		Declare Sub FloodFill(x As Double, y As Double, FillColorBK As Integer = -1, FillStyleBK As FillStyle)
+		Declare Sub FillRect(R As Rect, FillColorBK As Integer = -1)
+		Declare Sub DrawFocusRect(R As Rect)
+		Declare Function TextWidth(ByRef FText As WString) As Integer
+		Declare Function TextHeight(ByRef FText As WString) As Integer
+		Declare Operator Cast As Any Ptr
+		Declare Constructor
+		Declare Destructor
 	End Type
-
-    Function Canvas.ReadProperty(ByRef PropertyName As String) As Any Ptr
-        Select Case LCase(PropertyName)
-        Case "pen": Return @Pen
-        Case "brush": Return @Brush
-        Case "font": Return @Font
-        Case "clip": Return @Clip
-        Case "copymode": Return @CopyMode
-        Case "height": iTemp = ParentControl->Height: Return @iTemp
-        Case "width": iTemp = ParentControl->Width: Return @iTemp
-        Case Else: Return Base.ReadProperty(PropertyName)
-        End Select
-        Return 0
-    End Function
-    
-    Function Canvas.WriteProperty(ByRef PropertyName As String, Value As Any Ptr) As Boolean
-        Select Case LCase(PropertyName)
-        Case "clip": This.Clip = QBoolean(Value)
-        Case "copymode": This.CopyMode = QInteger(Value)
-        Case Else: Return Base.WriteProperty(PropertyName, Value)
-        End Select
-        Return True
-    End Function
-
-	Property Canvas.Width As Integer
-		If ParentControl Then Return ParentControl->Width
-	End Property
-
-	Property Canvas.Height As Integer
-		If ParentControl Then Return ParentControl->Height
-	End Property
-
-	Property Canvas.Ctrl As My.Sys.Forms.Control Ptr
-		Return ParentControl
-	End Property
-
-	Property Canvas.Ctrl(Value As My.Sys.Forms.Control Ptr)
-		ParentControl = Value
-		If ParentControl Then 
-			'ParentControl->Canvas = @This
-			Brush.Color = Ctrl->BackColor
-		End If
-	End Property
-
-	Property Canvas.Pixel(xy As Point) As Integer
-		GetDevice
-		#IfNDef __USE_GTK__
-			Return .GetPixel(Handle,xy.x,xy.y)
-		#Else
-			Return 0
-		#EndIf
-		ReleaseDevice
-	End Property
-
-	Property Canvas.Pixel(xy As Point, Value As Integer)
-		GetDevice
-		#IfNDef __USE_GTK__
-			.SetPixel(Handle,xy.x,xy.y,Value)
-		#EndIf
-		ReleaseDevice
-	End Property
-
-	Sub Canvas.GetDevice
-		If ParentControl Then
-			#IfNDef __USE_GTK__
-			   If ParentControl->Handle Then 
-				   If Clip Then
-					  Handle = GetDcEx(ParentControl->Handle,0,DCX_PARENTCLIP OR DCX_CACHE)
-				   Else
-					  Handle = GetDc(ParentControl->Handle)
-				   End If
-				   SelectObject(Handle,Font.Handle)
-				   SelectObject(Handle,Pen.Handle)
-				   SelectObject(Handle,Brush.Handle)
-				   SetROP2 Handle,Pen.Mode
-			   End If
-			 #EndIf
-		End If
-	End Sub
-
-	Sub Canvas.ReleaseDevice
-		#IfNDef __USE_GTK__
-			If ParentControl Then If Handle Then ReleaseDc ParentControl->Handle,Handle
-		#EndIf
-	End Sub
-
-	Sub Canvas.MoveTo(x As Integer,y As Integer)
-		GetDevice
-		#IfNDef __USE_GTK__
-			.MoveToEx Handle,x,y,0
-		#EndIf
-		ReleaseDevice
-	End Sub
-
-	Sub Canvas.LineTo(x As Integer,y As Integer)
-		GetDevice
-		#IfNDef __USE_GTK__
-			.LineTo Handle,x,y
-		#EndIf
-		ReleaseDevice
-	End Sub
-
-	Sub Canvas.Line(x As Integer,y As Integer,x1 As Integer,y1 As Integer)
-		GetDevice
-		#IfNDef __USE_GTK__
-			.MoveToEx Handle,x,y,0
-			.LineTo Handle,x1,y1
-		#EndIf
-		ReleaseDevice
-	End Sub
-
-	Sub Canvas.Rectangle Overload(x As Integer,y As Integer,x1 As Integer,y1 As Integer)
-		GetDevice
-		#IfNDef __USE_GTK__
-			.Rectangle Handle,x,y,x1,y1
-		#EndIf
-		ReleaseDevice
-	End Sub
-
-	Sub Canvas.Rectangle(R As Rect)
-		GetDevice
-		#IfNDef __USE_GTK__
-			.Rectangle Handle,R.Left,R.Top,R.Right,R.Bottom
-		#EndIf
-		ReleaseDevice
-	End Sub
-
-	Sub Canvas.Ellipse Overload(x As Integer,y As Integer,x1 As Integer,y1 As Integer)
-		GetDevice
-		#IfNDef __USE_GTK__
-			.Ellipse Handle,x,y,x1,y1
-		#EndIf
-		ReleaseDevice
-	End Sub
-
-	Sub Canvas.Ellipse(R As Rect)
-		GetDevice
-		#IfNDef __USE_GTK__
-			.Rectangle Handle,R.Left,R.Top,R.Right,R.Bottom
-		#EndIf
-		ReleaseDevice
-	End Sub
-
-	Sub Canvas.RoundRect Overload(x As Integer,y As Integer,x1 As Integer,y1 As Integer,nWidth As Integer,nHeight As Integer)
-		GetDevice
-		#IfNDef __USE_GTK__
-			.RoundRect Handle,x,y,x1,y1,nWidth,nHeight
-		#EndIf
-		ReleaseDevice
-	End Sub
-
-	Sub Canvas.Polygon(Points As Point Ptr,Count As Integer)
-		GetDevice
-		#IfNDef __USE_GTK__
-			.Polygon Handle, Points, Count
-		#EndIf
-		ReleaseDevice
-	End Sub
-
-	Sub Canvas.RoundRect(R As Rect,nWidth As Integer,nHeight As Integer)
-		GetDevice
-		#IfNDef __USE_GTK__
-			.RoundRect Handle,R.Left,R.Top,R.Right,R.Bottom,nWidth,nHeight
-		#EndIf
-		ReleaseDevice
-	End Sub
-
-	Sub Canvas.Chord(x As Integer,y As Integer,x1 As Integer,y1 As Integer,nXRadial1 As Integer,nYRadial1 As Integer,nXRadial2 As Integer,nYRadial2 As Integer)
-		GetDevice
-		#IfNDef __USE_GTK__
-			.Chord(Handle,x,y,x1,y1,nXRadial1,nYRadial1,nXRadial2,nYRadial2)
-		#EndIf
-		ReleaseDevice
-	End Sub
-
-	Sub Canvas.Pie(x As Integer,y As Integer,x1 As Integer,y1 As Integer,nXRadial1 As Integer,nYRadial1 As Integer,nXRadial2 As Integer,nYRadial2 As Integer)
-	   GetDevice
-	   #IfNDef __USE_GTK__
-		.Pie(Handle,x,y,x1,y1,nXRadial1,nYRadial1,nXRadial2,nYRadial2)
-	   #EndIf
-	   ReleaseDevice
-	End Sub
-
-	Sub Canvas.Arc(x As Integer,y As Integer,x1 As Integer,y1 As Integer,xStart As Integer, yStart As Integer,xEnd As Integer,yEnd As Integer)
-		GetDevice
-		#IfNDef __USE_GTK__
-			.Arc(Handle,x,y,x1,y1,xStart, yStart,xEnd,yEnd)
-		#EndIf
-		ReleaseDevice
-	End Sub
-
-	Sub Canvas.ArcTo(x As Integer,y As Integer,x1 As Integer,y1 As Integer,nXRadial1 As Integer,nYRadial1 As Integer,nXRadial2 As Integer,nYRadial2 As Integer)
-		GetDevice
-		#IfNDef __USE_GTK__
-			.ArcTo Handle,x,y,x1,y1,nXRadial1,nYRadial1,nXRadial2,nYRadial2
-		#EndIf
-		ReleaseDevice
-	End Sub
-
-	Sub Canvas.AngleArc(x As Integer,y As Integer,Radius As Integer,StartAngle As Single,SweepAngle As Single)
-		GetDevice
-		#IfNDef __USE_GTK__
-			.AngleArc Handle,x,y,Radius,StartAngle,SweepAngle
-		#EndIf
-		ReleaseDevice
-	End Sub
-
-	Sub Canvas.Polyline(Points As Point Ptr,Count As Integer)
-	   GetDevice
-	   #IfNDef __USE_GTK__
-			.Polyline Handle,Points,Count
-	   #EndIf
-	   ReleaseDevice
-	End Sub
-
-	Sub Canvas.PolylineTo(Points As Point Ptr,Count As Integer)
-		GetDevice
-		#IfNDef __USE_GTK__
-			.PolylineTo Handle,Points,Count
-		#EndIf
-		ReleaseDevice
-	End Sub
-
-	Sub Canvas.PolyBeizer(Points As Point Ptr,Count As Integer)
-		GetDevice
-		#IfNDef __USE_GTK__
-			.PolyBezier Handle,Points,Count
-		#EndIf
-		ReleaseDevice
-	End Sub
-
-	Sub Canvas.PolyBeizerTo(Points As Point Ptr,Count As Integer)
-		GetDevice
-		#IfNDef __USE_GTK__
-			.PolyBezierTo Handle,Points,Count
-		#EndIf
-		ReleaseDevice
-	End Sub
-
-	Sub Canvas.SetPixel(x As Integer,y As Integer,PixelColor As Integer)
-		GetDevice
-		#IfNDef __USE_GTK__
-			.SetPixel Handle,x,y,PixelColor
-		#EndIf
-		ReleaseDevice
-	End Sub
-
-	Function Canvas.GetPixel(x As Integer,y As Integer) As Integer
-		GetDevice
-		#IfNDef __USE_GTK__
-			Return .GetPixel(Handle,x,y)
-		#Else
-			Return 0
-		#ENDiF
-		ReleaseDevice
-	End Function
-
-	Sub Canvas.TextOut(x As Integer,y As Integer,ByRef s As WString,FG As Integer,BK As Integer)
-		GetDevice
-		#IfNDef __USE_GTK__
-			If BK = -1 then
-			   SetBKMode(Handle,TRANSPARENT)
-			   SetTextColor(Handle,FG)
-			   .TextOut(Handle,X,Y,@s,Len(s))
-			   SetBKMode(Handle,OPAQUE) 
-			Else
-			   SetBKColor(Handle,BK) 
-			   SetTextColor(Handle,FG)
-			   .TextOut(Handle,X,Y,@s,Len(s))
-			End If
-		#ENdIf
-		ReleaseDevice
-	End Sub
-
-	Sub Canvas.Draw(x As Integer,y As Integer,Image As Any Ptr)
-		 GetDevice
-		 ReleaseDevice
-	End Sub
-
-	Sub Canvas.StretchDraw(x As Integer,y As Integer,nWidth As Integer,nHeight As Integer,Image As Any Ptr)
-		GetDevice
-		ReleaseDevice
-	End Sub
-
-	Sub Canvas.CopyRect(Dest As Rect,Canvas As Canvas,Source As Rect)
-		GetDevice
-		ReleaseDevice
-	End Sub
-
-	Sub Canvas.FloodFill(x As Integer,y As Integer,FillColor As Integer,FillStyle As FillStyle)
-		GetDevice
-		#IfNDef __USE_GTK__
-			.ExtFloodFill Handle,x,y,FillColor,FillStyle
-		#EndIf
-		ReleaseDevice
-	End Sub
-
-	Sub Canvas.FillRect(R As Rect,FillColor As Integer = -1)
-		#IfNDef __USE_GTK__
-			Static As HBRUSH B
-			GetDevice
-			If B Then DeleteObject B
-			If FillColor <> -1 Then 
-			   B = CreateSolidBrush(FillColor)
-			   .FillRect Handle,@R,B
-			Else
-			   .FillRect Handle,@R,Brush.Handle 
-			End If
-		#ENdIf
-		ReleaseDevice
-	End Sub
-
-	Sub Canvas.DrawFocusRect(R As Rect)
-		GetDevice
-		#IfNDef __USE_GTK__
-			.DrawFocusRect Handle,@R
-		#EndIf
-		ReleaseDevice
-	End Sub
-
-	Function Canvas.TextWidth(ByRef FText As WString) As Integer
-		#IfNDef __USE_GTK__
-			Dim Sz As SIZE
-			GetDevice
-			GetTextExtentPoint32(Handle,@FText,Len(FText),@Sz)
-			ReleaseDevice
-			Return Sz.cX
-		#Else
-			Return 0
-		#EndIf
-	End Function
-
-	Function Canvas.TextHeight(ByRef FText As WString) As Integer
-		#IfNDef __USE_GTK__
-			Dim Sz As SIZE
-			GetDevice
-			GetTextExtentPoint32(Handle,@FText,Len(FText),@Sz)
-			ReleaseDevice
-			Return Sz.cY
-		#Else
-			Return 0
-		#EndIf
-	End Function
-
-	Operator Canvas.Cast As Any Ptr
-		Return @This
-	End Operator
-
-	Constructor Canvas
-		Clip = False
-		WLet FClassName, "Canvas"
-	End Constructor
-
-	Destructor Canvas
-		#IfNDef __USE_GTK__ 
-			If Handle Then ReleaseDevice
-		#EndIf
-	End Destructor
 End Namespace
+
+#ifndef __USE_MAKE__
+	#include once "Canvas.bas"
+#endif
+

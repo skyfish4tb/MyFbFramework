@@ -1,2 +1,1 @@
-﻿#Define __USE_GTK2__
-#Include Once "mff.bi"
+﻿#include once "mff.bi"

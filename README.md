@@ -1,3 +1,4 @@
+Language: <b>English</b> | <a href="README_CN.md">中文介绍</a>
 # MyFbFramework
 
 ## My FreeBasic Framework

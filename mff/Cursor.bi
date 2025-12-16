@@ -11,235 +11,136 @@
 '* by Xusinboy Bekchanov (2018-2019)                                         *
 '******************************************************************************
 
-#Include Once "Component.bi"
+#include once "Component.bi"
 
-#IfDef __USE_GTK__
-	#DEFINE crArrow       "default"
-	#DEFINE crAppStarting "progress"
-	#DEFINE crCross       "crosshair"
-	#DEFINE crIBeam       "text"
-	#DEFINE crIcon        GDK_ICON
-	#DEFINE crNo          "not-allowed"
-	#DEFINE crSize        "move"
-	#DEFINE crSizeAll     "all-scroll"
-	#DEFINE crSizeNESW    "nesw-resize"
-	#DEFINE crSizeNS      "ns-resize"
-	#DEFINE crSizeNWSE    "nwse-resize"
-	#DEFINE crSizeWE      "ew-resize"
-	#DEFINE crUpArrow     GDK_CENTER_PTR
-	#DEFINE crWait        "wait"
-	#DEFINE crDrag        GDK_FLEUR
-	#DEFINE crMultiDrag   GDK_FLEUR
-	#DEFINE crHandPoint   "pointer"
-	#DEFINE crSQLWait     GDK_WATCH
-	#DEFINE crHSplit      "col-resize"
-	#DEFINE crVSplit      "row-resize"
-	#DEFINE crNoDrop      "no-drop"
-#Else
-	#DEFINE crArrow       LoadCursor(0,IDC_ARROW)
-	#DEFINE crAppStarting LoadCursor(0,IDC_APPSTARTING)
-	#DEFINE crCross       LoadCursor(0,IDC_CROSS)
-	#DEFINE crIBeam       LoadCursor(0,IDC_IBEAM)
-	#DEFINE crIcon        LoadCursor(0,IDC_ICON)
-	#DEFINE crNo          LoadCursor(0,IDC_NO)
-	#DEFINE crSize        LoadCursor(0,IDC_SIZE)
-	#DEFINE crSizeAll     LoadCursor(0,IDC_SIZEALL)
-	#DEFINE crSizeNESW    LoadCursor(0,IDC_SIZENESW)
-	#DEFINE crSizeNS      LoadCursor(0,IDC_SIZENS)
-	#DEFINE crSizeNWSE    LoadCursor(0,IDC_SIZENWSE)
-	#DEFINE crSizeWE      LoadCursor(0,IDC_SIZEWE)
-	#DEFINE crUpArrow     LoadCursor(0,IDC_UPARROW)
-	#DEFINE crWait        LoadCursor(0,IDC_WAIT)
-	#DEFINE crDrag        LoadCursor(GetModuleHandle(NULL),"DRAG")
-	#DEFINE crMultiDrag   LoadCursor(GetModuleHandle(NULL),"MULTIDRAG")
-	#DEFINE crHandPoint   LoadCursor(GetModuleHandle(NULL),"HANDPOINT")
-	#DEFINE crSQLWait     LoadCursor(GetModuleHandle(NULL),"SQLWAIT")
-	#DEFINE crHSplit      LoadCursor(GetModuleHandle(NULL),"HSPLIT")
-	#DEFINE crVSplit      LoadCursor(GetModuleHandle(NULL),"VSPLIT")
-	#DEFINE crNoDrop      LoadCursor(GetModuleHandle(NULL),"NODROP")
-#EndIf
+Namespace Cursors
+#ifdef __USE_GTK__
+	#define crDefault     "default"
+	#define crArrow       "default"
+	#define crAppStarting "progress"
+	#define crCross       "crosshair"
+	#define crIBeam       "text"
+	#define crIcon        GDK_ICON
+	#define crNo          "not-allowed"
+	#define crSize        "move"
+	#define crSizeAll     "all-scroll"
+	#ifdef __USE_GTK3__
+		#define crSizeNESW    "nesw-resize"
+	#else
+		#define crSizeNESW    "crosshair"
+	#endif
+	#ifdef __USE_GTK3__
+		#define crSizeNS      "ns-resize"
+	#else
+		#define crSizeNS      "sb_v_double_arrow"
+	#endif
+	#ifdef __USE_GTK3__
+		#define crSizeNWSE    "nwse-resize"
+	#else
+		#define crSizeNWSE    "crosshair"
+	#endif
+	#ifdef __USE_GTK3__
+		#define crSizeWE      "ew-resize"
+	#else
+		#define crSizeWE      "sb_h_double_arrow"
+	#endif
+	#define crUpArrow     GDK_CENTER_PTR
+	#define crWait        "wait"
+	#define crDrag        GDK_FLEUR
+	#define crMultiDrag   GDK_FLEUR
+	#define crHandPoint   "pointer"
+	#define crSQLWait     GDK_WATCH
+	#define crHSplit      "col-resize"
+	#define crVSplit      "row-resize"
+	#define crNoDrop      "no-drop"
+#else
+	#define crDefault     0
+	#define crArrow       LoadCursor(0,IDC_ARROW)
+	#define crAppStarting LoadCursor(0,IDC_APPSTARTING)
+	#define crCross       LoadCursor(0,IDC_CROSS)
+	#define crIBeam       LoadCursor(0,IDC_IBEAM)
+	#define crIcon        LoadCursor(0,IDC_ICON)
+	#define crNo          LoadCursor(0,IDC_NO)
+	#define crSize        LoadCursor(0,IDC_SIZE)
+	#define crSizeAll     LoadCursor(0,IDC_SIZEALL)
+	#define crSizeNESW    LoadCursor(0,IDC_SIZENESW)
+	#define crSizeNS      LoadCursor(0,IDC_SIZENS)
+	#define crSizeNWSE    LoadCursor(0,IDC_SIZENWSE)
+	#define crSizeWE      LoadCursor(0,IDC_SIZEWE)
+	#define crUpArrow     LoadCursor(0,IDC_UPARROW)
+	#define crWait        LoadCursor(0,IDC_WAIT)
+	#define crHand        LoadCursor(0,IDC_HAND)
+	#define crHelp        LoadCursor(0,IDC_HELP)
+	#define crDrag        LoadCursor(GetModuleHandle(NULL),"DRAG")
+	#define crMultiDrag   LoadCursor(GetModuleHandle(NULL),"MULTIDRAG")
+	#define crHandPoint   LoadCursor(GetModuleHandle(NULL),"HANDPOINT")
+	#define crSQLWait     LoadCursor(GetModuleHandle(NULL),"SQLWAIT")
+	#define crHSplit      LoadCursor(GetModuleHandle(NULL),"HSPLIT")
+	#define crVSplit      LoadCursor(GetModuleHandle(NULL),"VSPLIT")
+	#define crNoDrop      LoadCursor(GetModuleHandle(NULL),"NODROP")
+#endif
+End Namespace
 
 Namespace My.Sys.Drawing
-    #DEFINE QCursor(__Ptr__) *Cast(Cursor Ptr,__Ptr__)
-
-    Type Cursor Extends My.Sys.Object
-        Private:
-            FWidth     As Integer
-            FHeight    As Integer
-            FHotSpotX  As Integer
-            FHotSpotY  As Integer
-            Declare Sub Create
-        Public:
-			Ctrl 			As My.Sys.ComponentModel.Component Ptr
-            Graphic    		As Any Ptr
-            #IfDef __USE_GTK__
-				Handle 		As GdkCursor Ptr
-			#Else
-				Handle		As HCURSOR
-			#EndIf
-            Declare Property Width As Integer
-            Declare Property Width(Value As Integer)
-            Declare Property Height As Integer
-            Declare Property Height(Value As Integer)
-            Declare Property HotSpotX As Integer
-            Declare Property HotSpotX(Value As Integer)
-            Declare Property HotSpotY As Integer
-            Declare Property HotSpotY(Value As Integer)
-            Declare Sub LoadFromFile(ByRef File As WString)
-            Declare Sub SaveToFile(ByRef File As WString)
-            Declare Sub LoadFromResourceName(ByRef ResName As WString)
-            Declare Sub LoadFromResourceID(ResID As Integer)
-            Declare Operator Cast As Any Ptr
-            #IfDef __USE_GTK__
-				Declare Operator Let(Value As GdkCursorType)
-            #Else
-				Declare Operator Let(Value As HCURSOR)
-			#EndIf
-            Declare Operator Let(ByRef Value As WString)
-            Declare Operator Let(Value As Cursor)
-            Declare Constructor
-            Declare Destructor
-            Changed As Sub(BYREF Sender As Cursor)
-    End Type
-
-    Property Cursor.Width As Integer
-        Return FWidth 
-    End Property
-
-    Property Cursor.Width(Value As Integer)
-        FWidth = Value
-    End Property
-
-    Property Cursor.Height As Integer
-        Return FHeight
-    End Property
-
-    Property Cursor.Height(Value As Integer)
-        FHeight = Value
-    End Property
-
-    Property Cursor.HotSpotX As Integer
-        Return FHotSpotX
-    End Property
-
-    Property Cursor.HotSpotX(Value As Integer)
-       FHotSpotX = Value
-    End Property
-
-    Property Cursor.HotSpotY As Integer
-        Return FHotSpotY
-    End Property
-
-    Property Cursor.HotSpotY(Value As Integer)
-        FHotSpotY = Value
-    End Property
-
-    Sub Cursor.LoadFromFile(ByRef File As WString)
-        #IfNDef __USE_GTK__
-			Dim As ICONINFO ICIF
-			Dim As BITMAP BMP
-			Handle = LoadImage(0,File,IMAGE_CURSOR,0,0,LR_LOADFROMFILE)
-			GetIconInfo(Handle, @ICIF)
-			GetObject(ICIF.hbmColor, SizeOF(BMP), @BMP)
-			FWidth  = BMP.bmWidth
-			FHeight = BMP.bmHeight
-			FHotSpotX = ICIF.xHotSpot
-			FHotSpotY = ICIF.yHotSpot
-		#ENdIf
-        If Changed Then Changed(This)
-    End Sub
-
-    Sub Cursor.SaveToFile(ByRef File As WString)
-    End Sub
-
-    Sub Cursor.LoadFromResourceName(ByRef ResName As WString)
-        #IfNDef __USE_GTK__
-			Dim As ICONINFO ICIF
-			Dim As BITMAP BMP
-			Handle = LoadImage(GetModuleHandle(NULL), ResName, IMAGE_CURSOR, 0, 0, LR_COPYFROMRESOURCE)
-			GetIconInfo(Handle,@ICIF)
-			GetObject(ICIF.hbmColor,SizeOF(BMP), @BMP)
-			FWidth  = BMP.bmWidth
-			FHeight = BMP.bmHeight
-			FHotSpotX = ICIF.xHotSpot
-			FHotSpotY = ICIF.yHotSpot
-		#EndIf
-        If Changed Then Changed(This)
-    End Sub
-
-    Sub Cursor.LoadFromResourceID(ResID As Integer)
-        #IfNDef __USE_GTK__
-			Dim As ICONINFO ICIF
-			Dim As BITMAP BMP
-			Handle = LoadImage(GetModuleHandle(NULL), MAKEINTRESOURCE(ResID), IMAGE_CURSOR, 0, 0, LR_COPYFROMRESOURCE)
-			GetIconInfo(Handle,@ICIF)
-			GetObject(ICIF.hbmColor,SizeOF(BMP), @BMP)
-			FWidth  = BMP.bmWidth
-			FHeight = BMP.bmHeight
-			FHotSpotX = ICIF.xHotSpot
-			FHotSpotY = ICIF.yHotSpot
-		#EndIf
-        If Changed Then Changed(This)
-    End Sub
-
-    Sub Cursor.Create
-    End Sub
-
-    Operator Cursor.Cast As Any Ptr
-        Return @This
-    End Operator
-
-    Operator Cursor.Let(ByRef Value As WString)
-		#IfNDef __USE_GTK__
-			If FindResource(GetModuleHandle(NULL), Value, RT_CURSOR) Then
-			   LoadFromResourceName(Value)
-			Else
-			   LoadFromFile(Value)
-			End If
-		#Else
-			If Ctrl AndAlso Ctrl->widget Then
-				Dim As GdkDisplay Ptr pdisplay = gtk_widget_get_display(Ctrl->widget)
-				Handle = gdk_cursor_new_from_name(pdisplay, Value)
-				Dim As GdkWindow Ptr win
-				If gtk_is_layout(Ctrl->widget) Then
-					win = gtk_layout_get_bin_window(gtk_layout(Ctrl->widget))
-				Else
-					win = gtk_widget_get_parent_window(Ctrl->widget)
-				End If
-				If win Then gdk_window_set_cursor(win, Handle)
-			End If
-		#EndIf
-    End Operator
+	#define QCursor(__Ptr__) (*Cast(Cursor Ptr,__Ptr__))
 	
-	#IfDef __USE_GTK__
-		Operator Cursor.Let(Value As GdkCursorType)
-			If Ctrl AndAlso Ctrl->widget Then
-				Dim As GdkDisplay Ptr pdisplay = gtk_widget_get_display(Ctrl->widget)
-				Handle = gdk_cursor_new_for_display(pdisplay, Value)
-			End If
-		End Operator
-		
-	#Else
-		Operator Cursor.Let(Value As HCURSOR)
-			Handle = Value
-		End Operator
-	#EndIf
-	
-    Operator Cursor.Let(Value As Cursor)
-        Handle = Value.Handle
-    End Operator
+	Private Type Cursor Extends My.Sys.Object
+	Private:
+		FWidth     As Integer
+		FHeight    As Integer
+		FHotSpotX  As Integer
+		FHotSpotY  As Integer
+		FResName As WString Ptr
+		Declare Sub Create
+	Public:
+		#ifndef ReadProperty_Off
+			Declare Function ReadProperty(ByRef PropertyName As String) As Any Ptr
+		#endif
+		#ifndef WriteProperty_Off
+			Declare Function WriteProperty(ByRef PropertyName As String, Value As Any Ptr) As Boolean
+		#endif
+		Ctrl 			As My.Sys.ComponentModel.Component Ptr
+		Graphic    		As Any Ptr
+		#ifdef __USE_GTK__
+			Handle 		As GdkCursor Ptr
+		#elseif defined(__USE_WINAPI__)
+			Handle		As HCURSOR
+		#elseif defined(__USE_JNI__)
+			Handle		As jobject
+		#else
+			Handle		As Any Ptr
+		#endif
+		Declare Property Width As Integer
+		Declare Property Width(Value As Integer)
+		Declare Property Height As Integer
+		Declare Property Height(Value As Integer)
+		Declare Property HotSpotX As Integer
+		Declare Property HotSpotX(Value As Integer)
+		Declare Property HotSpotY As Integer
+		Declare Property HotSpotY(Value As Integer)
+		Declare Function LoadFromFile(ByRef File As WString, cx As Integer = 0, cy As Integer = 0) As Boolean
+		Declare Function SaveToFile(ByRef File As WString) As Boolean
+		Declare Function LoadFromResourceName(ByRef ResName As WString, ModuleHandle As Any Ptr = 0, cxDesired As Integer = 0, cyDesired As Integer = 0) As Boolean
+		Declare Function LoadFromResourceID(ResID As Integer, ModuleHandle As Any Ptr = 0, cxDesired As Integer = 0, cyDesired As Integer = 0) As Boolean
+		#ifdef __USE_WINAPI__
+			Declare Function ToBitmap() As HBITMAP
+		#endif
+		Declare Function ToString() ByRef As WString
+		Declare Operator Cast As Any Ptr
+		Declare Operator Let(Value As Integer)
+		#ifdef __USE_GTK__
+			Declare Operator Let(Value As GdkCursorType)
+		#elseif defined(__USE_WINAPI__)
+			Declare Operator Let(Value As HCURSOR)
+		#endif
+		Declare Operator Let(ByRef Value As WString)
+		Declare Operator Let(Value As Cursor)
+		Declare Constructor
+		Declare Destructor
+		Changed As Sub(ByRef Designer As My.Sys.Object, ByRef Sender As Cursor)
+	End Type
+End Namespace
 
-    Constructor Cursor
-        WLet FClassName, "Cursor"
-        #IfNDef __USE_GTK__
-			Handle = LoadCursor(NULL,IDC_ARROW)
-		#EndIf
-        If Changed Then Changed(This)
-    End Constructor
-
-    Destructor Cursor
-		#IfNDef __USE_GTK__
-			If Handle Then DeleteObject Handle
-		#EndIf
-    End Destructor
-End namespace
+#ifndef __USE_MAKE__
+	#include once "Cursor.bas"
+#endif

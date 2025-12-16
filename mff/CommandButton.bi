@@ -11,251 +11,78 @@
 '#  by Xusinboy Bekchanov (2018-2019)                                          #
 '###############################################################################
 
-#DEFINE QCommandButton(__Ptr__) *Cast(CommandButton Ptr,__Ptr__)
+#define QCommandButton(__Ptr__) (*Cast(CommandButton Ptr,__Ptr__))
 
-#Include Once "Control.bi"
-#Include Once "Graphic.bi"
-#Include Once "List.bi"
+#include once "Control.bi"
+#include once "Graphic.bi"
+#include once "List.bi"
 
-Enum ButtonStyle
-    bsText, bsBitmap, bsIcon, bsCursor, bsOwnerDraw
+Private Enum ButtonStyle
+	bsText, bsBitmap, bsIcon, bsCursor, bsOwnerDraw
 End Enum
 
 Namespace My.Sys.Forms
-    Type CommandButton Extends Control
-        Private:
-            FStyle      As ButtonStyle
-            FDefault    As Boolean
-            FImageType  As Integer
-            AStyle(4)   As Integer
-            ADefault(2) As Integer
-            #IfNDef __USE_GTK__
-				Declare Static Sub WndProc(BYREF message As Message)
-				Declare Static Sub HandleIsAllocated(BYREF Sender As Control)
-			#Else
-				Declare Static Sub Clicked(widget As GtkButton Ptr, user_data As Any Ptr)
-            #EndIf
-            Declare Sub ProcessMessage(BYREF message As Message)
-            Declare Static Sub GraphicChange(BYREF Sender As My.Sys.Drawing.GraphicType, Image As Any Ptr, ImageType As Integer)
-            Declare Function EnumMenuItems(Item As MenuItem, BYREF List As List) As Boolean
-        Public:
-            Graphic     As My.Sys.Drawing.GraphicType
-            Declare Function ReadProperty(PropertyName As String) As Any Ptr
-            Declare Function WriteProperty(ByRef PropertyName As String, Value As Any Ptr) As Boolean
-            Declare Property Caption ByRef As WString
-            Declare Property Caption(ByRef Value As WString)
-            Declare Property Text ByRef As WString
-            Declare Property Text(ByRef Value As WString)
-            Declare Property Default As Boolean
-            Declare Property Default(Value As Boolean)
-            Declare Property Style As ButtonStyle
-            Declare Property Style(Value As ButtonStyle)
-            Declare Operator Cast As Control Ptr
-            Declare Constructor
-            Declare Destructor
-            #IfNDef __USE_GTK__
-				OnDraw  As Sub(BYREF Sender As CommandButton, BYREF R As Rect, DC As HDC = 0)
-			#EndIf
-    End Type
-
-    Function CommandButton.ReadProperty(PropertyName As String) As Any Ptr
-        Select Case LCase(PropertyName)
-        Case "caption": Return Cast(Any Ptr, This.FText)
-        Case "text": Return Cast(Any Ptr, This.FText)
-        Case Else: Return Base.ReadProperty(PropertyName)
-        End Select
-        Return 0
-    End Function
-    
-    Function CommandButton.WriteProperty(PropertyName As String, Value As Any Ptr) As Boolean
-        Select Case LCase(PropertyName)
-        Case "caption": If Value <> 0 Then This.Caption = *Cast(WString Ptr, Value)
-        Case "text": If Value <> 0 Then This.Text = *Cast(WString Ptr, Value)
-        Case Else: Return Base.WriteProperty(PropertyName, Value)
-        End Select
-        Return True
-    End Function
-    
-    Property CommandButton.Caption ByRef As WString
-		Return Text
-    End Property
-
-    Property CommandButton.Caption(ByRef Value As WString)
-		Text = Value
-    End Property
-    
-    Property CommandButton.Text ByRef As WString
-        Return Base.Text
-    End Property
-
-    Property CommandButton.Text(ByRef Value As WString)
-        Base.Text = Value
-        #IfDef __USE_GTK__
-        	gtk_label_set_text_with_mnemonic(gtk_label(gtk_bin_get_child(gtk_bin(widget))), ToUtf8(Replace(Value, "&", "_")))
-		#EndIf
-    End Property
-
-    Property CommandButton.Default As Boolean
-        #IfNDef __USE_GTK__
-			If Handle Then
-				FDefault = (Style AND BS_DEFPUSHBUTTON)
-			End If
-		#EndIf
-        Return FDefault
-    End Property
-
-    Property CommandButton.Default(Value As Boolean)
-        If Value <> FDefault Then
-            FDefault = Value
-            #IfDef __USE_GTK__
-            	If Value Then
-            		gtk_widget_set_can_default(Widget, True)
-	            End If
-            #Else
-				ChangeStyle BS_PUSHLIKE, False
-				ChangeStyle BS_DEFPUSHBUTTON, True
-			#EndIf
-        End If
-    End Property
-
-    Property CommandButton.Style As ButtonStyle
-        Return FStyle
-    End Property
-
-    Property CommandButton.Style(Value As ButtonStyle)
-        If Value <> FStyle Then
-            FStyle = Value
-            #IfNDef __USE_GTK__
-				Base.Style = WS_CHILD OR AStyle(Abs_(FStyle)) OR ADefault(Abs_(FDefault)) 
-			#EndIf
-        End If
-    End Property
-
-    Sub CommandButton.GraphicChange(BYREF Sender As My.Sys.Drawing.GraphicType, Image As Any Ptr,ImageType As Integer)
-        With Sender
-            If .Ctrl->Child Then
-				#IfNDef __USE_GTK__
-					Select Case ImageType
-					Case IMAGE_BITMAP
-						QCommandButton(.Ctrl->Child).Style = bsBitmap
-						QCommandButton(.Ctrl->Child).Perform(BM_SETIMAGE,ImageType,CInt(Sender.Bitmap.Handle))
-					Case IMAGE_ICON
-						QCommandButton(.Ctrl->Child).Style = bsIcon
-						QCommandButton(.Ctrl->Child).Perform(BM_SETIMAGE,ImageType,CInt(Sender.Icon.Handle))
-					Case IMAGE_CURSOR
-						QCommandButton(.Ctrl->Child).Style = bsCursor
-						QCommandButton(.Ctrl->Child).Perform(BM_SETIMAGE,ImageType,CInt(Sender.Icon.Handle))
-					End Select
-				#EndIf
-            End If
-        End With
-    End Sub
-
-	#IfNDef __USE_GTK__
-		Sub CommandButton.HandleIsAllocated(BYREF Sender As Control)
-			If Sender.Child Then
-				With  QCommandButton(Sender.Child)
-					If .Style <> bsText Then
-						.Perform(BM_SETIMAGE,.Graphic.ImageType,CInt(.Graphic.Image))
-					End If
-				End With
-			End If
-		End Sub
-
-		Sub CommandButton.WndProc(BYREF Message As Message)
-	'        If Message.Sender Then
-	'            If Cast(TControl Ptr,Message.Sender)->Child Then
-	'               Cast(CommandButton Ptr,Cast(TControl Ptr,Message.Sender)->Child)->ProcessMessage(Message) 
-	'            End If
-	'        End If
-		End Sub
-	#EndIf
-
-    Function CommandButton.EnumMenuItems(Item As MenuItem,BYREF List As List) As Boolean
-        For i As Integer = 0 To Item.Count -1
-            List.Add Item.Item(i)
-            EnumMenuItems *Item.Item(i),List
-        Next i
-        Return True
-    End Function
-
-	Sub CommandButton.ProcessMessage(BYREF msg As Message)
-	#IfNDef __USE_GTK__
-		Select Case msg.Msg
-'        Case BM_CLICK
-'            If OnClick Then OnClick(This)
-		Case CM_COMMAND
-			'If Message.wParamHi = BN_CLICKED Then
-			'    If OnClick Then OnClick(This)
-			'End If
-		Case WM_GETDLGCODE: msg.Result = DLGC_BUTTON Or IIF(FDefault, DLGC_DEFPUSHBUTTON, DLGC_UNDEFPUSHBUTTON)
-		Case CM_DRAWITEM
-			Dim As DRAWITEMSTRUCT Ptr diStruct
-			Dim As Rect R
-			Dim As HDC Dc
-			diStruct = Cast(DRAWITEMSTRUCT Ptr,msg.lParam)
-			R = Cast(Rect,diStruct->rcItem)
-			Dc = diStruct->hDC
-			If OnDraw Then 
-				OnDraw(This,R,Dc)
-			Else
-			End If
-		Case WM_KEYUP
-			If LoWord(msg.wParam) = VK_SPACE Or LoWord(msg.wParam) = VK_RETURN Then
-				If OnClick Then OnClick(This)
-				msg.Result = -1
-				Return
-			End If
-		End Select
-		#EndIf
-		Base.ProcessMessage(msg)
-	End Sub
-
-    Operator CommandButton.Cast As Control Ptr 
-        Return Cast(Control Ptr, @This)
-    End Operator
-	
-	#IfDef __USE_GTK__
-		Sub CommandButton.Clicked(widget As GtkButton Ptr, user_data As Any Ptr)
-	    	Dim As CommandButton Ptr but = user_data
-	    	If but->OnClick Then but->OnClick(*but)
-	    End Sub
-    #EndIf
-
-    Constructor CommandButton
-        #IfDef __USE_GTK__
-			widget = gtk_button_new_with_label("")
-			g_signal_connect(widget, "clicked", G_CALLBACK(@Clicked), @This)
-        #Else
-			AStyle(0)        = BS_TEXT
-			AStyle(1)        = BS_BITMAP
-			AStyle(2)        = BS_ICON 
-			AStyle(3)        = BS_ICON 
-			ADefault(0)      = BS_PUSHLIKE
-			ADefault(1)      = BS_DEFPUSHBUTTON
-        #EndIf
-        Graphic.Ctrl  = @This
-        Graphic.OnChange = @GraphicChange
-        FTabStop = True
-        With This
-            .Child       = @This
-            #IfNDef __USE_GTK__
-				.RegisterClass "CommandButton", "Button"
-				.ChildProc   = @WndProc
-			#Else
-				.RegisterClass "CommandButton", @This
-            #EndIf
-            WLet FClassName, "CommandButton"
-            WLet FClassAncestor, "Button"
-            #IfNDef __USE_GTK__
-				.ExStyle     = 0
-				Base.Style       = WS_CHILD OR WS_TABSTOP OR AStyle(Abs_(FStyle)) OR ADefault(Abs_(FDefault))
-            #EndIf
-            .Width       = 75
-            .Height      = 25
-        End With  
-    End Constructor
-
-    Destructor CommandButton
-    End Destructor
+	'Looks like a push button and is used to begin, interrupt, or end a process.
+	Private Type CommandButton Extends Control
+	Private:
+		FStyle      As ButtonStyle
+		FCancel     As Boolean
+		FDefault    As Boolean
+		FImageType  As Integer
+		AStyle(4)   As Integer
+		ADefault(2) As Integer
+		#ifndef __USE_GTK__
+			Declare Static Sub WndProc(ByRef message As Message)
+			Declare Static Sub HandleIsAllocated(ByRef Sender As Control)
+		#else
+			Declare Static Sub Clicked(widget As GtkButton Ptr, user_data As Any Ptr)
+		#endif
+		Declare Static Sub GraphicChange(ByRef Designer As My.Sys.Object, ByRef Sender As My.Sys.Drawing.GraphicType, Image As Any Ptr, ImageType As Integer)
+		Declare Function EnumMenuItems(Item As MenuItem, ByRef List As List) As Boolean
+	Protected:
+		Declare Virtual Sub ProcessMessage(ByRef message As Message)
+	Public:
+		'Returns/sets a graphic to be displayed in a control (Windows only).
+		Graphic     As My.Sys.Drawing.GraphicType
+		#ifndef ReadProperty_Off
+			'Reads value from the name of property (Windows, Linux, Android, Web).
+			Declare Virtual Function ReadProperty(PropertyName As String) As Any Ptr
+		#endif
+		#ifndef WriteProperty_Off
+			'Writes value to the name of property (Windows, Linux, Android, Web).
+			Declare Virtual Function WriteProperty(ByRef PropertyName As String, Value As Any Ptr) As Boolean
+		#endif
+		'Indicates whether a command button is the Cancel button on a form (Windows only).
+		Declare Property Cancel As Boolean
+		Declare Property Cancel(Value As Boolean)
+		'Returns/sets the caption of the control (Windows, Linux, Android, Web).
+		Declare Property Caption ByRef As WString
+		Declare Property Caption(ByRef Value As WString)
+		'Returns/sets the tab order of an object within its parent form (Windows only).
+		Declare Property TabIndex As Integer
+		Declare Property TabIndex(Value As Integer)
+		'Returns/sets a value indicating whether a user can use the TAB key to give the focus to an object (Windows only).
+		Declare Property TabStop As Boolean
+		Declare Property TabStop(Value As Boolean)
+		'Returns/sets the text contained in the control (Windows, Linux, Android, Web).
+		Declare Property Text ByRef As WString
+		Declare Property Text(ByRef Value As WString)
+		'Determines which CommandButton control is the default command button on a form (Windows, Linux).
+		Declare Property Default As Boolean
+		Declare Property Default(Value As Boolean)
+		'Returns/sets the appearance of the control, whether standard or graphical (with a custom picture) (Windows only).
+		Declare Property Style As ButtonStyle
+		Declare Property Style(Value As ButtonStyle)
+		Declare Operator Cast As Control Ptr
+		Declare Constructor
+		Declare Destructor
+		#ifdef __USE_WINAPI__
+			'Occurs when any part of a CommandButton is moved, enlarged, or exposed.
+			OnDraw  As Sub(ByRef Designer As My.Sys.Object, ByRef Sender As CommandButton, ByRef R As Rect, DC As HDC = 0)
+		#endif
+	End Type
 End Namespace
+
+#ifndef __USE_MAKE__
+	#include once "CommandButton.bas"
+#endif

@@ -1,157 +1,79 @@
 ﻿'###############################################################################
 '#  RadioButton.bi                                                             #
 '#  This file is part of MyFBFramework                                         #
-'#  Authors: Nastase Eodor, Xusinboy Bekchanov                                 #
+'#  Authors: Nastase Eodor, Xusinboy Bekchanov, Liu XiaLin                     #
 '#  Based on:                                                                  #
 '#   TRadioButton.bi                                                           #
 '#   FreeBasic Windows GUI ToolKit                                             #
 '#   Copyright (c) 2007-2008 Nastase Eodor                                     #
-'#   Version 1.0.0                                                             #
+'#   Version 1.2.2                                                            #
 '#  Updated and added cross-platform                                           #
-'#  by Xusinboy Bekchanov (2018-2019)                                          #
+'#  by Xusinboy Bekchanov(2018-2019)  Liu XiaLin                               #
 '###############################################################################
 
-#Include Once "Control.bi"
+#include once "Control.bi"
 
 Namespace My.Sys.Forms
-	#DEFINE QRadioButton(__Ptr__) *Cast(RadioButton Ptr,__Ptr__)
-
-	Type RadioButton Extends Control
-		Private:
-			FChecked    As Boolean
-			#IfNDef __USE_GTK__
-				Declare Static Sub WndProc(BYREF Message As Message)
-				Declare Sub ProcessMessage(BYREF Message As Message)
-				Declare Static Sub HandleIsAllocated(BYREF Sender As Control)
-			#EndIf
-		Public:
-			Declare Function ReadProperty(PropertyName As String) As Any Ptr
-            Declare Function WriteProperty(ByRef PropertyName As String, Value As Any Ptr) As Boolean
-            Declare Property Caption ByRef As WString
-			Declare Property Caption(ByRef Value As WString)
-			Declare Property Text ByRef As WString
-			Declare Property Text(ByRef Value As WString)
-			Declare Property Checked As Boolean
-			Declare Property Checked(Value As Boolean)
-			Declare Property Grouped As Boolean
-			Declare Property Grouped(Value As Boolean)
-			Declare Operator Cast As Control Ptr
-			Declare Constructor
-			Declare Destructor
-			OnClick As Sub(BYREF Sender As RadioButton)
-	End Type
-
-	Function RadioButton.ReadProperty(PropertyName As String) As Any Ptr
-        Select Case LCase(PropertyName)
-        Case "caption": Return Cast(Any Ptr, This.FText)
-        Case "text": Return Cast(Any Ptr, This.FText)
-        Case Else: Return Base.ReadProperty(PropertyName)
-        End Select
-        Return 0
-    End Function
-    
-    Function RadioButton.WriteProperty(PropertyName As String, Value As Any Ptr) As Boolean
-        Select Case LCase(PropertyName)
-        Case "caption": If Value <> 0 Then This.Caption = *Cast(WString Ptr, Value)
-        Case "text": If Value <> 0 Then This.Text = *Cast(WString Ptr, Value)
-        Case Else: Return Base.WriteProperty(PropertyName, Value)
-        End Select
-        Return True
-    End Function
-    
-	Property RadioButton.Caption ByRef As WString
-		Return Text
-	End Property
-
-	Property RadioButton.Caption(ByRef Value As WString)
-		Text = Value
-	End Property
+	#define QRadioButton(__Ptr__) (*Cast(RadioButton Ptr,__Ptr__))
 	
-	Property RadioButton.Text ByRef As WString
-        Return Base.Text
-    End Property
+	'`RadioButton` is a Control within the MyFbFramework, part of the freeBasic framework.
+	'`RadioButton` - Displays an option that can be turned on or off.
+	Private Type RadioButton Extends Control
+	Private:
+		FAlignment  As Integer
+		FChecked    As Boolean
+		#ifdef __USE_WINAPI__
+			Declare Static Sub WndProc(ByRef Message As Message)
+		#elseif defined(__USE_GTK__)
+			Declare Static Sub RadioButton_Toggled(widget As GtkToggleButton Ptr, user_data As Any Ptr)
+		#endif
+		Declare Static Sub HandleIsAllocated(ByRef Sender As Control)
+	Protected:
+		#ifdef __USE_WASM__
+			Declare Virtual Function GetContent() As UString
+		#endif
+		Declare Virtual Sub ProcessMessage(ByRef Message As Message)
+	Public:
+		#ifndef ReadProperty_Off
+			'Loads state from persistence stream
+			Declare Function ReadProperty(PropertyName As String) As Any Ptr
+		#endif
+		#ifndef WriteProperty_Off
+			'Saves state to persistence stream
+			Declare Function WriteProperty(ByRef PropertyName As String, Value As Any Ptr) As Boolean
+		#endif
+		Declare Property Alignment As CheckAlignmentConstants
+		'Sets text position relative to the radio circle (Left/Right)
+		Declare Property Alignment(Value As CheckAlignmentConstants)
+		Declare Property Caption ByRef As WString
+		'Legacy text display (use Text property instead)
+		Declare Property Caption(ByRef Value As WString)
+		Declare Property Parent As Control Ptr
+		'Reference to containing control
+		Declare Property Parent(Value As Control Ptr)
+		Declare Property TabIndex As Integer
+		'Controls focus order in tab sequence
+		Declare Property TabIndex(Value As Integer)
+		Declare Property TabStop As Boolean
+		'Enables/disables focus via Tab key
+		Declare Property TabStop(Value As Boolean)
+		Declare Property Text ByRef As WString
+		'Display label adjacent to radio button
+		Declare Property Text(ByRef Value As WString)
+		Declare Property Checked As Boolean
+		'Indicates selection state (true=selected)
+		Declare Property Checked(Value As Boolean)
+		Declare Property Grouped As Boolean
+		'Determines automatic mutual exclusion within parent container
+		Declare Property Grouped(Value As Boolean)
+		Declare Operator Cast As Control Ptr
+		Declare Constructor
+		Declare Destructor
+		'Triggered when selection state changes
+		OnClick As Sub(ByRef Designer As My.Sys.Object, ByRef Sender As RadioButton)
+	End Type
+End Namespace
 
-    Property RadioButton.Text(ByRef Value As WString)
-        Base.Text = Value
-        #IfDef __USE_GTK__
-        	gtk_label_set_text_with_mnemonic(gtk_label(gtk_bin_get_child(gtk_bin(widget))), ToUtf8(Replace(Value, "&", "_")))
-		#EndIf
-    End Property
-
-	Property RadioButton.Checked As Boolean
-		#IfNDef __USE_GTK__ 
-			If Handle Then
-			   FChecked = Perform(BM_GETCHECK, 0, 0)
-			End If
-		#EndIf
-		Return FChecked
-	End Property
-
-	Property RadioButton.Checked(Value As Boolean)
-		FChecked = Value
-		#IfNDef __USE_GTK__ 
-			If Handle Then Perform(BM_SETCHECK,FChecked,0)
-		#EndIf
-	End Property
-
-	#IfNDef __USE_GTK__ 
-		Sub RadioButton.HandleIsAllocated(BYREF Sender As Control)
-			If Sender.Child Then
-				With QRadioButton(Sender.Child)
-					 .Perform(BM_SETCHECK,.Checked,0)
-				End With
-			End If
-		End Sub
-		
-		Sub RadioButton.WndProc(BYREF Message As Message)
-			If Message.Sender Then
-				
-			End If
-		End Sub
-
-		Sub RadioButton.ProcessMessage(BYREF Message As Message)
-			Select Case Message.Msg
-			Case CM_CTLCOLOR
-				Static As HDC Dc
-				Dc = Cast(HDC,Message.wParam)
-				SetBKMode Dc, TRANSPARENT
-				SetTextColor Dc,Font.Color
-				SetBKColor Dc,This.BackColor
-				SetBKMode Dc,OPAQUE   
-			Case CM_COMMAND
-				If Message.wParamHi = BN_CLICKED Then
-					If OnClick Then OnClick(This)
-				End If
-			End Select
-			Base.ProcessMessage(Message)
-		End Sub
-	#EndIf
-
-	Operator RadioButton.Cast As Control Ptr 
-		Return Cast(Control Ptr, @This)
-	End Operator
-
-	Constructor RadioButton
-		With This
-			.Child       = @This
-			#IfDef __USE_GTK__
-				widget = gtk_radio_button_new_with_label (NULL, "")
-				.RegisterClass "RadioButton", @This
-			#Else 
-				.RegisterClass "RadioButton","Button"
-				.ChildProc   = @WndProc
-				.ExStyle     = 0
-				.Style       = WS_CHILD OR BS_AUTORADIOBUTTON
-				.BackColor       = GetSysColor(COLOR_BTNFACE)
-				.OnHandleIsAllocated = @HandleIsAllocated	
-			#EndIf
-			WLet FClassName, "RadioButton"
-			WLet FClassAncestor, "Button"
-			.Width       = 90
-			.Height      = 17
-		End With  
-	End Constructor
-
-	Destructor RadioButton
-	End Destructor
-End namespace
+#ifndef __USE_MAKE__
+	#include once "RadioButton.bas"
+#endif

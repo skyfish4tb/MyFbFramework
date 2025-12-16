@@ -4,67 +4,37 @@
 '#  Authors: Xusinboy Bekchanov (2018-2019)                                     #
 '################################################################################
 
-#Include Once "Component.bi"
+#include once "Control.bi"
 
 Namespace My.Sys.Forms
-    #DEFINE QToolTips(__Ptr__) *Cast(ToolTips Ptr, __Ptr__)
-    
-    Type ToolTips Extends My.Sys.ComponentModel.Component
-        Private:
-'			#IfNDef __USE_GTK__
-'				Declare Static Sub WndProc(ByRef Message As Message)
-'				Declare Sub ProcessMessage(ByRef Message As Message)
-'				Declare Static Sub HandleIsAllocated(ByRef Sender As My.Sys.Forms.Control)
-'			#EndIf
-		Public:
-            Declare Operator Cast As My.Sys.ComponentModel.Component Ptr
-            Declare Constructor
-            Declare Destructor
-    End Type
-    
-'    #IfNDef __USE_GTK__
-'		Sub ToolTips.HandleIsAllocated(ByRef Sender As My.Sys.Forms.Control)
-'			If Sender.Child Then
-'				With QToolTips(Sender.Child)
-'					 
-'				End With
-'			End If
-'		End Sub
-'
-'		Sub ToolTips.WndProc(ByRef Message As Message)
-'		End Sub
-'
-'		Sub ToolTips.ProcessMessage(ByRef Message As Message)
-'			Base.ProcessMessage(Message)
-'		End Sub
-'	#EndIf
+	#define QToolTips(__Ptr__) (*Cast(ToolTips Ptr, __Ptr__))
 	
-    Operator ToolTips.Cast As My.Sys.ComponentModel.Component Ptr
-         Return Cast(My.Sys.ComponentModel.Component Ptr, @This)
-    End Operator
-
-    Constructor ToolTips
-        With This
-            WLet FClassName, "ToolTips"
-            WLet FClassAncestor, "tooltips_class32"
-            #IfDef __USE_GTK__
-				'Widget = gtk_tooltips_new()
-			#Else
-'				.RegisterClass "ToolTips","tooltips_class32"
-'				.Style        = TTS_ALWAYSTIP Or WS_POPUP
-'				.ExStyle      = WS_EX_TOPMOST
-'				.ChildProc    = @WndProc
-'				.OnHandleIsAllocated = @HandleIsAllocated
-			#EndIf
-'            .Width        = 175
-'            .Height       = 21
-'            .Child        = @This
-		End With
-    End Constructor
-
-    Destructor ToolTips
-		#IfNDef __USE_GTK__
-'			UnregisterClass "ToolTips",GetModuleHandle(NULL)
-		#EndIf
-    End Destructor
+	Private Type ToolTips Extends Control
+	Private:
+		#ifndef __USE_GTK__
+			Declare Static Sub WNDPROC(ByRef Message As Message)
+			Declare Virtual Sub ProcessMessage(ByRef Message As Message)
+			Declare Static Sub HandleIsAllocated(ByRef Sender As Control)
+		#else
+			Declare Static Function ActivateLink(Label As GtkLabel Ptr, uri As gchar Ptr, user_data As gpointer) As Boolean
+			Dim As GtkWidget Ptr winTooltip
+			lblTooltip As GtkWidget Ptr
+		#endif
+	Public:
+		#ifndef __USE_GTK__
+			Declare Sub CreateWnd
+		#endif
+		'Displays the ToolTip to the user (Windows only).
+		Declare Virtual Sub Show
+		'Conceals the ToolTip from the user (Windows only).
+		Declare Virtual Sub Hide
+		Declare Operator Cast As Control Ptr
+		Declare Constructor
+		Declare Destructor
+		OnLinkClicked As Sub(ByRef Designer As My.Sys.Object, ByRef Sender As ToolTips, ByRef link As WString)
+	End Type
 End Namespace
+
+#ifndef __USE_MAKE__
+	#include once "ToolTips.bas"
+#endif
